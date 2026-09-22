@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Digital Attendance System</title>
+
+    <!-- QR Scanner & Generator Libraries -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Cropper.js Library for Image Cropping -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --card-bg: rgba(17, 24, 39, 0.8);
+            --border-color: rgba(255, 255, 255, 0.15);
+            --primary-cyan: #06b6d4;
+            --primary-purple: #a855f7;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --success-green: #10b981;
+            --danger-red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(rgba(11, 15, 25, 0.75), rgba(11, 15, 25, 0.75)),
+                        url('https://democratic-turquoise-orn0qr5o.edgeone.dev/OUTGATE.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            padding: 28px;
+            width: 100%;
+            max-width: 850px;
+            transition: all 0.3s ease;
+        }
+
+        h1, h2, h3 { font-weight: 700; color: #fff; }
+        .glow-text {
+            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hidden { display: none !important; }
+
+        .portal-header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .portal-logo {
+            height: 54px;
+            width: 54px;
+            object-fit: cover;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px;
+            border: 2px solid var(--primary-cyan);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
+        }
+        .title-text {
+            font-size: 1.25rem;
+            text-align: center;
+            flex: 1;
+            line-height: 1.3;
+        }
+
+        .header-welcome-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .header-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-cyan);
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+            background: #1e293b;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            width: 100%;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+        .btn-inline {
+            width: auto;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+        }
+        .forgot-pass-link {
+            font-size: 0.82rem;
+            color: var(--primary-cyan);
+            text-decoration: underline;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .forgot-pass-link:hover { color: var(--primary-purple); }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px;
+            border-radius: 10px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .tab-btn.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--primary-cyan);
+            border: 1px solid var(--border-color);
+        }
+
+        .login-box { max-width: 480px; margin: 0 auto; text-align: center; }
+        .scanner-container {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px dashed var(--primary-cyan);
+            margin: 15px 0 10px 0;
+            background: #000;
+        }
+        .input-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            outline: none;
+        }
+        .input-group input:focus { border-color: var(--primary-cyan); }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-card.present { border-top: 4px solid var(--success-green); }
+        .stat-card.absent { border-top: 4px solid var(--danger-red); }
+        .stat-value { font-size: 2.2rem; font-weight: 700; margin-top: 6px; }
+
+        .filter-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .badge-present { background: rgba(16, 185, 129, 0.2); color: var(--success-green); border: 1px solid var(--success-green); }
+        .badge-absent { background: rgba(239, 68, 68, 0.2); color: var(--danger-red); border: 1px solid var(--danger-red); }
+        .badge-none { background: rgba(156, 163, 175, 0.2); color: var(--text-muted); border: 1px solid var(--text-muted); }
+
+        .profile-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 700px) {
+            .profile-layout, .stats-grid { grid-template-columns: 1fr; }
+            .portal-logo { height: 42px; width: 42px; }
+            .title-text { font-size: 1rem; }
+        }
+        .qr-display-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        #qrcode img, #qrcode canvas {
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+        }
+
+        .avatar-edit-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            background: rgba(0,0,0,0.25);
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .preview-avatar-img {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-cyan);
+            background: #1e293b;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .crop-container-box {
+            max-width: 500px;
+            max-height: 400px;
+            width: 100%;
+            margin: 15px 0;
+            overflow: hidden;
+            background: #000;
+            border-radius: 8px;
+        }
+        .crop-container-box img {
+            max-width: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. LOGIN PORTAL SECTION -->
+    <div id="login-view" class="glass-card login-box">
+        <div class="portal-header-container">
+            <img src="https://democratic-turquoise-orn0qr5o.edgeone.dev/lanscape%20final%20logo.jpg" alt="Landscape Logo" class="portal-logo">
+            <h2 class="glow-text title-text">Smart Digital Attendance System</h2>
+            <img src="https://democratic-turquoise-orn0qr5o.edgeone.dev/NA%20LOGO%20UPDATED.jpg" alt="NA Logo" class="portal-logo">
+        </div>
+
+        <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 20px;">Sign in to access your attendance analytics and profile</p>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" id="btn-tab-qr" onclick="switchLoginMode('qr')">QR Login</button>
+            <button class="tab-btn" id="btn-tab-creds" onclick="switchLoginMode('creds')">Credentials / Email</button>
+        </div>
+
+        <div id="mode-qr-container">
+            <div id="reader" class="scanner-container"></div>
+            <div id="reader-hidden" class="hidden"></div>
+            
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+                First time? Scan using camera or upload your saved QR image file.
+            </p>
+
+            <label for="qr-file-input" class="btn btn-secondary" style="display: inline-block; cursor: pointer; margin-bottom: 8px;">
+                📷 Upload QR Code Image
+            </label>
+            <input type="file" id="qr-file-input" accept="image/*" class="hidden" onchange="handleQRFileUpload(event)">
+        </div>
+
+        <div id="mode-creds-container" class="hidden">
+            <form onsubmit="handleCredsLogin(event)">
+                <div class="input-group">
+                    <label for="login-identifier">Username or Verified Email</label>
+                    <input type="text" id="login-identifier" placeholder="Enter username or verified email" required>
+                </div>
+                <div class="input-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter password" required>
+                    <div style="text-align: right; margin-top: 6px;">
+                        <span class="forgot-pass-link" onclick="openForgotPasswordModal()">Forgot Password?</span>
+                    </div>
+                </div>
+                <button type="submit" class="btn" style="margin-top: 10px;">Log In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- FORGOT PASSWORD OTP LOGIN MODAL -->
+    <div id="forgot-modal" class="modal-overlay hidden">
+        <div class="glass-card" style="max-width: 400px; width: 90%; text-align: center;">
+            <h3 class="glow-text">Forgot Password OTP Login</h3>
+            <p style="font-size: 0.83rem; color: var(--text-muted); margin: 8px 0 16px 0;">
+                Enter your registered & verified email address to receive a login OTP code.
+            </p>
+
+            <div id="forgot-step-email">
+                <div class="input-group">
+                    <label for="forgot-email-input">Verified Email Address</label>
+                    <input type="email" id="forgot-email-input" placeholder="e.g. joriel@example.com" required>
+                </div>
+                <button class="btn" onclick="sendForgotOTP()">Send OTP Code</button>
+                <button class="btn btn-secondary" style="margin-top: 8px;" onclick="closeForgotPasswordModal()">Cancel</button>
+            </div>
+
+            <div id="forgot-step-otp" class="hidden">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                    OTP code sent to: <br><strong id="forgot-target-email" style="color: #fff;"></strong>
+                </p>
+                <div class="input-group">
+                    <input type="text" id="forgot-otp-input" placeholder="Enter 6-digit OTP" style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;" maxlength="6">
+                </div>
+                <button class="btn" onclick="verifyForgotOTPAndLogin()">Verify OTP & Log In</button>
+                <button class="btn btn-secondary" style="margin-top: 8px;" onclick="closeForgotPasswordModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FIRST-TIME QUICK SETUP MODAL -->
+    <div id="setup-modal" class="modal-overlay hidden">
+        <div class="glass-card" style="max-width: 440px; width: 90%;">
+            <h2 class="glow-text" style="text-align: center;">Quick Account Setup</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-bottom: 16px;">
+                First time login detected! Complete your account details below.
+            </p>
+            <form onsubmit="handleQuickSetup(event)">
+                <div class="input-group">
+                    <label for="setup-fullname">Full Name</label>
+                    <input type="text" id="setup-fullname" placeholder="e.g. Juan Dela Cruz" required>
+                </div>
+                <div class="input-group">
+                    <label for="setup-username">Choose Username</label>
+                    <input type="text" id="setup-username" placeholder="e.g. student2026" required>
+                </div>
+                <div class="input-group">
+                    <label for="setup-password">Create Password</label>
+                    <input type="password" id="setup-password" placeholder="Min. 6 characters" required>
+                </div>
+                <button type="submit" class="btn">Save & Proceed</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- DAILY ATTENDANCE SELECTION MODAL -->
+    <div id="attendance-modal" class="modal-overlay hidden">
+        <div class="glass-card" style="max-width: 380px; width: 90%; text-align: center;">
+            <h3 class="glow-text">Record Attendance</h3>
+            <p style="font-size: 0.88rem; color: var(--text-muted); margin: 12px 0 20px 0;">
+                Select your attendance status for today:
+            </p>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn" style="background: var(--success-green);" onclick="recordAttendance('Present')">Present</button>
+                <button class="btn" style="background: var(--danger-red);" onclick="recordAttendance('Absent')">Absent</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGOUT CONFIRMATION MODAL -->
+    <div id="logout-modal" class="modal-overlay hidden">
+        <div class="glass-card" style="max-width: 420px; width: 90%; text-align: center;">
+            <h3 class="glow-text">Logout Confirmation</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin: 14px 0 20px 0;">
+                Are you sure you want to Logout?
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn" style="background: var(--danger-red);" onclick="confirmLogoutOnly()">Logout</button>
+                <button class="btn" onclick="confirmLogoutAndDownload()">Logout and Download Data</button>
+                <button class="btn btn-secondary" onclick="closeLogoutModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OTP VERIFICATION MODAL -->
+    <div id="otp-modal" class="modal-overlay hidden">
+        <div class="glass-card" style="max-width: 380px; width: 90%; text-align: center;">
+            <h3 class="glow-text">Email Verification</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 10px 0;">
+                An OTP security code was dispatched to: <br><strong id="otp-target-email" style="color: #fff;"></strong>
+            </p>
+            <div class="input-group">
+                <input type="text" id="otp-input-code" placeholder="Enter 6-digit OTP" style="text-align: center; font-size: 1.2rem; letter-spacing: 4px;" maxlength="6">
+            </div>
+            <button class="btn" onclick="verifyOTPCode()">Verify Code</button>
+            <button class="btn btn-secondary" style="margin-top: 8px;" onclick="closeOTPModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- IMAGE CROPPER MODAL -->
+    <div id="cropper-modal" class="modal-overlay hidden">
+        <div class="glass-card" style="max-width: 480px; width: 90%; text-align: center;">
+            <h3 class="glow-text">Crop Profile Picture</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Adjust and crop your image before saving</p>
+            
+            <div class="crop-container-box">
+                <img id="image-to-crop" src="" alt="Source Image">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" onclick="saveCroppedAvatar()">Apply & Save Photo</button>
+                <button class="btn btn-secondary" onclick="closeCropperModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD SECTION -->
+    <div id="dashboard-view" class="glass-card hidden">
+        <div class="dashboard-header">
+            <div class="header-welcome-container">
+                <img id="dash-header-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='%239ca3af'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>" alt="Avatar" class="header-avatar">
+                <h2>Welcome, "<span id="dash-student-name" class="glow-text">Student Name</span>"</h2>
+            </div>
+            <button class="btn btn-secondary" style="width: auto; padding: 8px 16px;" onclick="handleLogout()">Logout</button>
+        </div>
+
+        <div class="tab-buttons">
+            <button class="tab-btn active" id="btn-dash-overview" onclick="switchDashTab('overview')">Attendance Overview</button>
+            <button class="tab-btn" id="btn-dash-profile" onclick="switchDashTab('profile')">Profile Settings & QR</button>
+            <button class="tab-btn" id="btn-dash-data" onclick="switchDashTab('data')">Data</button>
+        </div>
+
+        <!-- TAB 1: OVERVIEW -->
+        <div id="dash-tab-overview">
+            <div class="stats-grid">
+                <div class="stat-card present">
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">Total Present Days</span>
+                    <div class="stat-value" style="color: var(--success-green);" id="count-present">0</div>
+                </div>
+                <div class="stat-card absent">
+                    <span style="color: var(--text-muted); font-size: 0.9rem;">Total Absent Days</span>
+                    <div class="stat-value" style="color: var(--danger-red);" id="count-absent">0</div>
+                </div>
+            </div>
+
+            <div class="filter-card">
+                <h3>Check Date Attendance</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">Select a date on the calendar filter to verify your attendance record.</p>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <input type="date" id="calendar-filter" onchange="checkAttendanceDate()" class="input-group" style="max-width: 200px; margin: 0; padding: 10px; background: rgba(0,0,0,0.4); color: #fff; border: 1px solid var(--border-color); border-radius: 8px;">
+                    <div id="filter-result-badge" class="status-badge badge-none">Select a date</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: PROFILE SETTINGS -->
+        <div id="dash-tab-profile" class="hidden">
+            <div class="profile-layout">
+                <form onsubmit="handleSaveProfile(event)">
+                    <div class="avatar-edit-container">
+                        <img id="prof-avatar-preview" src="" alt="Profile Preview" class="preview-avatar-img">
+                        <div>
+                            <label for="avatar-file-input" class="btn btn-secondary btn-inline" style="cursor: pointer; display: inline-block;">
+                                📷 Upload & Crop Photo
+                            </label>
+                            <input type="file" id="avatar-file-input" accept="image/*" class="hidden" onchange="handleAvatarSelect(event)">
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">JPG or PNG files supported</p>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="prof-name">Full Name</label>
+                        <input type="text" id="prof-name" required>
+                    </div>
+
+                    <div class="input-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label for="prof-email" style="margin: 0;">Email Address</label>
+                            <span id="email-verify-status" class="status-badge" style="padding: 2px 8px; font-size: 0.75rem; margin: 0;">Unverified</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="email" id="prof-email" placeholder="student@school.edu">
+                            <button type="button" class="btn btn-secondary btn-inline" onclick="sendEmailOTP()">Verify OTP</button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="prof-phone">Contact Number</label>
+                        <input type="tel" id="prof-phone" placeholder="09xxxxxxxxx">
+                    </div>
+                    <div class="input-group">
+                        <label for="prof-username">Username</label>
+                        <input type="text" id="prof-username" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="prof-password">Password</label>
+                        <input type="password" id="prof-password" required>
+                    </div>
+                    <button type="submit" class="btn" style="margin-top: 8px;">Save Profile Changes</button>
+                </form>
+
+                <div class="qr-display-box">
+                    <h3>Your Personal QR Code</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin: 8px 0 16px 0;">
+                        Use this QR Code for quick sign-in or attendance verification.
+                    </p>
+                    <div id="qrcode"></div>
+                    <button class="btn btn-secondary" style="margin-top: 16px;" onclick="downloadQRCode()">Download QR Code</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: DATA MANAGEMENT -->
+        <div id="dash-tab-data" class="hidden">
+            <div class="profile-layout">
+                <!-- Download Data Option -->
+                <div class="filter-card" style="margin-bottom: 0;">
+                    <h3>Download Data</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 10px 0 16px 0;">
+                        Export a complete JSON backup containing your profile details (name, email, profile photo) and all attendance history (Present/Absent records).
+                    </p>
+                    <button class="btn" onclick="exportStudentDataJSON()">📥 Download Data (JSON)</button>
+                </div>
+
+                <!-- Import Data Option -->
+                <div class="filter-card" style="margin-bottom: 0;">
+                    <h3>Import Data</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 10px 0 16px 0;">
+                        Upload a saved JSON data file to restore and encode all your user details and attendance logs directly into the dashboard.
+                    </p>
+                    <label for="import-json-input" class="btn btn-secondary" style="display: block; text-align: center; cursor: pointer;">
+                        📤 Select JSON File to Import
+                    </label>
+                    <input type="file" id="import-json-input" accept=".json" class="hidden" onchange="handleImportDataJSON(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTING & LOGIC -->
+    <script>
+        const LOCAL_STORAGE_KEY_STUDENTS = 'smart_qr_students';
+        const LOCAL_STORAGE_KEY_ATTENDANCE = 'smart_qr_attendance_logs';
+        const LOCAL_STORAGE_KEY_CURRENT = 'smart_qr_logged_in_student';
+        const LOCAL_STORAGE_KEY_VISITED = 'smart_qr_portal_visited';
+
+        const DEFAULT_AVATAR_SVG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='%239ca3af'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>";
+
+        let html5QrcodeScanner = null;
+        let qrCodeInstance = null;
+        let cropperInstance = null;
+        let activeStudent = null;
+        let generatedOTP = null;
+        let pendingCroppedAvatar = null;
+
+        let forgotOTPCode = null;
+        let forgotStudent = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initDefaultData();
+            checkAutoLogin();
+            document.getElementById('calendar-filter').value = new Date().toISOString().split('T')[0];
+        });
+
+        function initDefaultData() {
+            if (!localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS)) {
+                const sampleStudents = [
+                    { 
+                        id: '2026-001', 
+                        name: 'Joriel S. Hernandez', 
+                        email: 'joriel@example.com', 
+                        emailVerified: true,
+                        phone: '09123456789', 
+                        username: 'joriel2026', 
+                        password: 'password123', 
+                        avatar: DEFAULT_AVATAR_SVG,
+                        isSetup: true 
+                    }
+                ];
+                localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(sampleStudents));
+            }
+            if (!localStorage.getItem(LOCAL_STORAGE_KEY_ATTENDANCE)) {
+                const sampleLogs = [
+                    { studentId: '2026-001', date: new Date().toISOString().split('T')[0], status: 'Present' }
+                ];
+                localStorage.setItem(LOCAL_STORAGE_KEY_ATTENDANCE, JSON.stringify(sampleLogs));
+            }
+        }
+
+        function checkAutoLogin() {
+            const savedStudentId = localStorage.getItem(LOCAL_STORAGE_KEY_CURRENT);
+            if (savedStudentId) {
+                const students = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS) || '[]');
+                const student = students.find(s => s.id === savedStudentId);
+                if (student) {
+                    activeStudent = student;
+                    showDashboard();
+                    return;
+                }
+            }
+
+            // Kapag hindi na first time buksan ang portal, pumunta agad sa Credentials / Email tab
+            const hasVisitedBefore = localStorage.getItem(LOCAL_STORAGE_KEY_VISITED);
+            if (hasVisitedBefore) {
+                switchLoginMode('creds');
+            } else {
+                localStorage.setItem(LOCAL_STORAGE_KEY_VISITED, 'true');
+                switchLoginMode('qr');
+            }
+        }
+
+        function switchLoginMode(mode) {
+            document.getElementById('btn-tab-qr').classList.toggle('active', mode === 'qr');
+            document.getElementById('btn-tab-creds').classList.toggle('active', mode === 'creds');
+            document.getElementById('mode-qr-container').classList.toggle('hidden', mode !== 'qr');
+            document.getElementById('mode-creds-container').classList.toggle('hidden', mode !== 'creds');
+
+            if (mode === 'qr') {
+                initQRScanner();
+            } else if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(err => console.error(err));
+            }
+        }
+
+        function initQRScanner() {
+            if (document.getElementById('reader').children.length > 0) return;
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 200 });
+            html5QrcodeScanner.render(onScanSuccess, () => {});
+        }
+
+        function handleQRFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const html5QrCode = new Html5Qrcode("reader-hidden");
+            html5QrCode.scanFile(file, true)
+                .then(decodedText => {
+                    onScanSuccess(decodedText);
+                })
+                .catch(err => {
+                    alert("Could not detect a valid QR Code in the uploaded image. Please try a clearer picture.");
+                    console.error(err);
+                });
+        }
+
+        function onScanSuccess(decodedText) {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(err => console.error(err));
+            }
+
+            const students = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS) || '[]');
+            let matchedStudent = students.find(s => s.id === decodedText || s.username === decodedText);
+
+            if (!matchedStudent) {
+                matchedStudent = {
+                    id: decodedText,
+                    name: '',
+                    email: '',
+                    emailVerified: false,
+                    phone: '',
+                    username: '',
+                    password: '',
+                    avatar: DEFAULT_AVATAR_SVG,
+                    isSetup: false
+                };
+                students.push(matchedStudent);
+                localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(students));
+            }
+
+            activeStudent = matchedStudent;
+            localStorage.setItem(LOCAL_STORAGE_KEY_CURRENT, activeStudent.id);
+
+            if (!activeStudent.isSetup || !activeStudent.name || !activeStudent.username) {
+                document.getElementById('setup-modal').classList.remove('hidden');
+            } else {
+                triggerAttendancePrompt();
+            }
+        }
+
+        function handleQuickSetup(event) {
+            event.preventDefault();
+            const fullName = document.getElementById('setup-fullname').value.trim();
+            const username = document.getElementById('setup-username').value.trim();
+            const password = document.getElementById('setup-password').value.trim();
+
+            const students = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS) || '[]');
+            const index = students.findIndex(s => s.id === activeStudent.id);
+
+            if (index !== -1) {
+                students[index].name = fullName;
+                students[index].username = username;
+                students[index].password = password;
+                students[index].isSetup = true;
+                if(!students[index].avatar) students[index].avatar = DEFAULT_AVATAR_SVG;
+                activeStudent = students[index];
+                localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(students));
+            }
+
+            document.getElementById('setup-modal').classList.add('hidden');
+            triggerAttendancePrompt();
+        }
+
+        function handleCredsLogin(event) {
+            event.preventDefault();
+            const inputVal = document.getElementById('login-identifier').value.trim();
+            const passIn = document.getElementById('login-password').value.trim();
+
+            const students = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS) || '[]');
+            
+            const matched = students.find(s => 
+                (s.username === inputVal || (s.email === inputVal && s.emailVerified)) && 
+                s.password === passIn
+            );
+
+            if (matched) {
+                activeStudent = matched;
+                localStorage.setItem(LOCAL_STORAGE_KEY_CURRENT, activeStudent.id);
+                triggerAttendancePrompt();
+            } else {
+                alert('Invalid Credentials! Note: Email login requires prior OTP verification.');
+            }
+        }
+
+        function triggerAttendancePrompt() {
+            document.getElementById('attendance-modal').classList.remove('hidden');
+        }
+
+        function recordAttendance(status) {
+            const today = new Date().toISOString().split('T')[0];
+            let logs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_ATTENDANCE) || '[]');
+            
+            logs = logs.filter(l => !(l.studentId === activeStudent.id && l.date === today));
+            
+            logs.push({
+                studentId: activeStudent.id,
+                date: today,
+                status: status
+            });
+
+            localStorage.setItem(LOCAL_STORAGE_KEY_ATTENDANCE, JSON.stringify(logs));
+            document.getElementById('attendance-modal').classList.add('hidden');
+            showDashboard();
+        }
+
+        function openForgotPasswordModal() {
+            document.getElementById('forgot-modal').classList.remove('hidden');
+            document.getElementById('forgot-step-email').classList.remove('hidden');
+            document.getElementById('forgot-step-otp').classList.add('hidden');
+            document.getElementById('forgot-email-input').value = '';
+            document.getElementById('forgot-otp-input').value = '';
+        }
+
+        function closeForgotPasswordModal() {
+            document.getElementById('forgot-modal').classList.add('hidden');
+            forgotStudent = null;
+            forgotOTPCode = null;
+        }
+
+        function sendForgotOTP() {
+            const inputEmail = document.getElementById('forgot-email-input').value.trim();
+            if (!inputEmail) {
+                alert('Please enter your email address.');
+                return;
+            }
+
+            const students = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS) || '[]');
+            const matched = students.find(s => s.email.toLowerCase() === inputEmail.toLowerCase() && s.emailVerified);
+
+            if (!matched) {
+                alert('No verified account found with this email address. Please make sure your email was previously verified.');
+                return;
+            }
+
+            forgotStudent = matched;
+            forgotOTPCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+            document.getElementById('forgot-target-email').textContent = inputEmail;
+            document.getElementById('forgot-step-email').classList.add('hidden');
+            document.getElementById('forgot-step-otp').classList.remove('hidden');
+
+            alert(`[FORGOT PASSWORD OTP SIMULATION]\nYour 6-digit OTP code is: ${forgotOTPCode}`);
+        }
+
+        function verifyForgotOTPAndLogin() {
+            const enteredOTP = document.getElementById('forgot-otp-input').value.trim();
+            if (enteredOTP === forgotOTPCode && forgotStudent) {
+                activeStudent = forgotStudent;
+                localStorage.setItem(LOCAL_STORAGE_KEY_CURRENT, activeStudent.id);
+                closeForgotPasswordModal();
+                alert(`OTP Verified! Welcome back, ${activeStudent.name}.`);
+                triggerAttendancePrompt();
+            } else {
+                alert('Invalid OTP code. Please check and try again.');
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('dashboard-view').classList.remove('hidden');
+
+            document.getElementById('dash-header-avatar').src = activeStudent.avatar || DEFAULT_AVATAR_SVG;
+            document.getElementById('dash-student-name').textContent = activeStudent.name || 'Student Name';
+
+            document.getElementById('prof-name').value = activeStudent.name || '';
+            document.getElementById('prof-email').value = activeStudent.email || '';
+            document.getElementById('prof-phone').value = activeStudent.phone || '';
+            document.getElementById('prof-username').value = activeStudent.username || '';
+            document.getElementById('prof-password').value = activeStudent.password || '';
+            document.getElementById('prof-avatar-preview').src = activeStudent.avatar || DEFAULT_AVATAR_SVG;
+
+            updateEmailVerificationBadge();
+            calculateAttendanceStats();
+            checkAttendanceDate();
+            renderStudentQRCode();
+        }
+
+        function switchDashTab(tab) {
+            document.getElementById('btn-dash-overview').classList.toggle('active', tab === 'overview');
+            document.getElementById('btn-dash-profile').classList.toggle('active', tab === 'profile');
+            document.getElementById('btn-dash-data').classList.toggle('active', tab === 'data');
+
+            document.getElementById('dash-tab-overview').classList.toggle('hidden', tab !== 'overview');
+            document.getElementById('dash-tab-profile').classList.toggle('hidden', tab !== 'profile');
+            document.getElementById('dash-tab-data').classList.toggle('hidden', tab !== 'data');
+        }
+
+        /* ================= DATA IMPORT & EXPORT LOGIC ================= */
+        function exportStudentDataJSON() {
+            if (!activeStudent) return;
+
+            const logs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_ATTENDANCE) || '[]');
+            const studentLogs = logs.filter(l => l.studentId === activeStudent.id);
+
+            const exportPayload = {
+                student: activeStudent,
+                attendanceLogs: studentLogs,
+                exportedAt: new Date().toISOString()
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPayload, null, 2));
+            
+            const todayDate = new Date().toISOString().split('T')[0];
+            const cleanName = (activeStudent.name || 'Student').replace(/[^a-zA-Z0-9]/g, '_');
+            const fileName = `${cleanName}_AttendanceData_${todayDate}.json`;
+
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", fileName);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function handleImportDataJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+
+                    if (!importedData || !importedData.student) {
+                        alert('Invalid data file format. Missing student record.');
+                        return;
+                    }
+
+                    const students = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS) || '[]');
+                    const importedStudent = importedData.student;
+
+                    const index = students.findIndex(s => s.id === importedStudent.id || s.id === activeStudent.id);
+                    if (index !== -1) {
+                        students[index] = { ...students[index], ...importedStudent };
+                    } else {
+                        students.push(importedStudent);
+                    }
+                    localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(students));
+
+                    activeStudent = importedStudent;
+                    localStorage.setItem(LOCAL_STORAGE_KEY_CURRENT, activeStudent.id);
+
+                    if (Array.isArray(importedData.attendanceLogs)) {
+                        let logs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_ATTENDANCE) || '[]');
+                        logs = logs.filter(l => l.studentId !== activeStudent.id);
+                        logs.push(...importedData.attendanceLogs);
+                        localStorage.setItem(LOCAL_STORAGE_KEY_ATTENDANCE, JSON.stringify(logs));
+                    }
+
+                    showDashboard();
+                    alert('Data successfully imported and updated in your dashboard!');
+                } catch (err) {
+                    console.error(err);
+                    alert('Error importing JSON file. Please ensure it is a valid data file.');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        /* ================= LOGOUT & MODAL LOGIC ================= */
+        function handleLogout() {
+            document.getElementById('logout-modal').classList.remove('hidden');
+        }
+
+        function closeLogoutModal() {
+            document.getElementById('logout-modal').classList.add('hidden');
+        }
+
+        function confirmLogoutOnly() {
+            localStorage.removeItem(LOCAL_STORAGE_KEY_CURRENT);
+            location.reload();
+        }
+
+        function confirmLogoutAndDownload() {
+            exportStudentDataJSON();
+            setTimeout(() => {
+                confirmLogoutOnly();
+            }, 400);
+        }
+
+        function sendEmailOTP() {
+            const emailInput = document.getElementById('prof-email').value.trim();
+            if (!emailInput) {
+                alert('Please enter an email address first.');
+                return;
+            }
+
+            generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+            document.getElementById('otp-target-email').textContent = emailInput;
+            document.getElementById('otp-modal').classList.remove('hidden');
+
+            alert(`[SECURITY OTP SIMULATION]\nYour verification code is: ${generatedOTP}`);
+        }
+
+        function verifyOTPCode() {
+            const enteredOTP = document.getElementById('otp-input-code').value.trim();
+            if (enteredOTP === generatedOTP) {
+                activeStudent.email = document.getElementById('prof-email').value.trim();
+                activeStudent.emailVerified = true;
+                
+                const students = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS) || '[]');
+                const index = students.findIndex(s => s.id === activeStudent.id);
+                if (index !== -1) {
+                    students[index].email = activeStudent.email;
+                    students[index].emailVerified = true;
+                    localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(students));
+                }
+
+                alert('Email address verified successfully! You can now use this email to log in or reset password.');
+                closeOTPModal();
+                updateEmailVerificationBadge();
+            } else {
+                alert('Invalid OTP Code. Please try again.');
+            }
+        }
+
+        function closeOTPModal() {
+            document.getElementById('otp-modal').classList.add('hidden');
+            document.getElementById('otp-input-code').value = '';
+        }
+
+        function updateEmailVerificationBadge() {
+            const badge = document.getElementById('email-verify-status');
+            if (activeStudent.emailVerified) {
+                badge.className = 'status-badge badge-present';
+                badge.textContent = 'Verified ✓';
+            } else {
+                badge.className = 'status-badge badge-absent';
+                badge.textContent = 'Unverified';
+            }
+        }
+
+        function handleAvatarSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageEl = document.getElementById('image-to-crop');
+                imageEl.src = e.target.result;
+                document.getElementById('cropper-modal').classList.remove('hidden');
+
+                if (cropperInstance) {
+                    cropperInstance.destroy();
+                }
+
+                cropperInstance = new Cropper(imageEl, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    background: false,
+                    autoCropArea: 0.8
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function saveCroppedAvatar() {
+            if (!cropperInstance) return;
+
+            const canvas = cropperInstance.getCroppedCanvas({
+                width: 200,
+                height: 200
+            });
+
+            pendingCroppedAvatar = canvas.toDataURL('image/jpeg', 0.85);
+            document.getElementById('prof-avatar-preview').src = pendingCroppedAvatar;
+            closeCropperModal();
+        }
+
+        function closeCropperModal() {
+            document.getElementById('cropper-modal').classList.add('hidden');
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
+            document.getElementById('avatar-file-input').value = '';
+        }
+
+        function calculateAttendanceStats() {
+            const logs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_ATTENDANCE) || '[]');
+            const studentLogs = logs.filter(l => l.studentId === activeStudent.id);
+
+            const presentCount = studentLogs.filter(l => l.status.toLowerCase() === 'present').length;
+            const absentCount = studentLogs.filter(l => l.status.toLowerCase() === 'absent').length;
+
+            document.getElementById('count-present').textContent = presentCount;
+            document.getElementById('count-absent').textContent = absentCount;
+        }
+
+        function checkAttendanceDate() {
+            const selectedDate = document.getElementById('calendar-filter').value;
+            const badge = document.getElementById('filter-result-badge');
+
+            if (!selectedDate) {
+                badge.className = 'status-badge badge-none';
+                badge.textContent = 'Select a date';
+                return;
+            }
+
+            const logs = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_ATTENDANCE) || '[]');
+            const record = logs.find(l => l.studentId === activeStudent.id && l.date === selectedDate);
+
+            if (record) {
+                if (record.status.toLowerCase() === 'present') {
+                    badge.className = 'status-badge badge-present';
+                    badge.textContent = 'Status: Present';
+                } else {
+                    badge.className = 'status-badge badge-absent';
+                    badge.textContent = 'Status: Absent';
+                }
+            } else {
+                badge.className = 'status-badge badge-none';
+                badge.textContent = 'No Record / Class Off';
+            }
+        }
+
+        function handleSaveProfile(event) {
+            event.preventDefault();
+            const students = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS) || '[]');
+            const index = students.findIndex(s => s.id === activeStudent.id);
+
+            if (index !== -1) {
+                students[index].name = document.getElementById('prof-name').value.trim();
+                
+                const newEmail = document.getElementById('prof-email').value.trim();
+                if (newEmail !== students[index].email) {
+                    students[index].email = newEmail;
+                    students[index].emailVerified = false;
+                }
+
+                students[index].phone = document.getElementById('prof-phone').value.trim();
+                students[index].username = document.getElementById('prof-username').value.trim();
+                students[index].password = document.getElementById('prof-password').value.trim();
+
+                if (pendingCroppedAvatar) {
+                    students[index].avatar = pendingCroppedAvatar;
+                }
+
+                activeStudent = students[index];
+                localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(students));
+
+                document.getElementById('dash-student-name').textContent = activeStudent.name;
+                document.getElementById('dash-header-avatar').src = activeStudent.avatar || DEFAULT_AVATAR_SVG;
+                updateEmailVerificationBadge();
+                renderStudentQRCode();
+                alert('Profile details and photo updated successfully!');
+            }
+        }
+
+        function renderStudentQRCode() {
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = '';
+
+            qrCodeInstance = new QRCode(qrContainer, {
+                text: activeStudent.id,
+                width: 160,
+                height: 160,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
+
+        function downloadQRCode() {
+            const qrContainer = document.getElementById('qrcode');
+            const img = qrContainer.querySelector('img');
+            const canvas = qrContainer.querySelector('canvas');
+
+            let imageSrc = '';
+            if (img && img.src) {
+                imageSrc = img.src;
+            } else if (canvas) {
+                imageSrc = canvas.toDataURL("image/png");
+            }
+
+            if (!imageSrc) {
+                alert('QR Code generation in progress, please try again.');
+                return;
+            }
+
+            const downloadLink = document.createElement('a');
+            downloadLink.href = imageSrc;
+            downloadLink.download = `${(activeStudent.name || 'Student').replace(/\s+/g, '_')}_QR.png`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    </script>
+</body>
+</html>

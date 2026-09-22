@@ -1,0 +1,2378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart QR Attendance & Admin Dashboard</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --surface: #ffffff;
+            --text: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transform-origin: top center;
+            transition: transform 0.2s ease, max-width 0.2s ease;
+            background-color: #f3f4f6;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://scary-amethyst-m5j1yvsa.edgeone.dev/IN%20GATE.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: blur(5px);
+            -webkit-filter: blur(5px);
+            transform: scale(1.05);
+            z-index: -1;
+        }
+
+        header {
+            background-color: rgba(79, 70, 229, 0.9);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .header-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .header-logo:hover {
+            transform: scale(1.08);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+            text-align: center;
+            flex-grow: 1;
+            padding: 0 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            color: white;
+        }
+
+        footer {
+            background-color: rgba(79, 70, 229, 0.9);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            box-shadow: 0 -4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            margin-top: auto;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        footer div {
+            flex: 1;
+            text-align: center;
+        }
+
+        footer div:first-child {
+            text-align: left;
+        }
+
+        footer div:last-child {
+            text-align: right;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-bottom: 2px solid #e5e7eb;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #6b7280;
+            transition: 0.3s;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .content-section {
+            display: none;
+            max-width: 1000px;
+            margin: 15px auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            width: calc(100% - 50px);
+            box-sizing: border-box;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        #scanner.content-section {
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+        }
+
+        .scanner-landscape-wrapper {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .scanner-pane {
+            flex: 1;
+            min-width: 280px;
+            max-width: 400px;
+        }
+
+        .result-pane {
+            flex: 1;
+            min-width: 280px;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--primary);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: background 0.3s;
+            position: relative;
+        }
+
+        .drop-zone.dragover {
+            background: #e0e7ff;
+            border-color: #4338ca;
+        }
+
+        .drop-zone img {
+            max-width: 80px;
+            max-height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-top: 5px;
+            border: 2px solid var(--primary);
+            display: none;
+        }
+
+        button.action-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            width: 100%;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: bold;
+        }
+
+        button.action-btn:hover {
+            background-color: #4338ca;
+        }
+
+        .roulette-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 20px auto;
+        }
+
+        #wheelCanvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 4px solid var(--primary);
+            background: #fff;
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 24px solid #ef4444;
+            z-index: 10;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+        }
+
+        #winner-card {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: #dcfce7;
+            border: 2px solid #22c55e;
+            border-radius: 8px;
+            animation: popIn 0.4s ease;
+            text-align: center;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .pin-card-container {
+            margin-top: 15px;
+            padding: 12px 15px;
+            border: 2px dashed #6366f1;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .pin-card-container h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .pin-input {
+            text-align: center;
+            font-size: 16px;
+            letter-spacing: 2px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+
+        .flashing-green-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #15803d;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 1.2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-dot {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.2; transform: scale(0.75); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .data-transfer-container {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px dashed #d1d5db;
+            border-radius: 8px;
+            background: #f9fafb;
+        }
+
+        #qrcode-container {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            padding: 15px;
+            background: white;
+            border: 2px dashed #d1d5db;
+        }
+
+        #database-qrcode-container, #student-portal-qrcode-container {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: white;
+            border: 3px solid #4f46e5;
+            border-radius: 12px;
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        #database-qrcode-container img, #database-qrcode-container canvas,
+        #student-portal-qrcode-container img, #student-portal-qrcode-container canvas {
+            margin: 0 auto;
+            display: block;
+        }
+
+        #edit-qrcode-container {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 3px solid var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background-color: #000;
+        }
+
+        #reader video {
+            object-fit: cover;
+            width: 100%;
+            max-height: 240px;
+        }
+
+        .scan-result-card {
+            margin-top: 0;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            display: block;
+            transition: background 0.3s, border 0.3s;
+            opacity: 1;
+        }
+
+        .scan-idle {
+            background: #eff6ff !important;
+            border: 2px dashed #3b82f6 !important;
+            color: #1e40af;
+        }
+        .scan-success {
+            background: #dcfce7 !important;
+            border: 2px solid #22c55e !important;
+            color: #15803d;
+        }
+        .scan-warning {
+            background: #fef08a !important;
+            border: 2px solid #eab308 !important;
+            color: #a16207;
+        }
+        .scan-duplicate {
+            background: #fee2e2 !important;
+            border: 2px solid #ef4444 !important;
+            color: #b91c1c;
+        }
+
+        .id-card {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        .id-photo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .id-details h2 {
+            margin: 0 0 4px 0;
+            color: #111827;
+            font-size: 18px;
+        }
+        .id-details p {
+            margin: 2px 0;
+            color: #4b5563;
+            font-size: 13px;
+        }
+        .id-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .recent-scans-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: opacity 0.8s ease;
+            opacity: 1;
+        }
+
+        .recent-scans-wrapper.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            min-width: 600px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: middle;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #f9fafb;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .table-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #ccc;
+        }
+
+        #login-modal, #edit-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-box, .edit-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ef4444;
+            transition: .3s;
+            border-radius: 34px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider {
+            background-color: #10b981;
+        }
+        input:focus + .slider {
+            box-shadow: 0 0 2px #10b981;
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- DEVICE / DISPLAY RATIO SELECTION MODAL -->
+    <div id="device-select-modal" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(5px);">
+        <div style="background: white; padding: 25px 30px; border-radius: 12px; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+            <h2 style="font-size: 20px; font-weight: bold; margin-top: 0; margin-bottom: 8px; color: #1f2937;">Select Device Display Mode</h2>
+            <p style="font-size: 13px; color: #4b5563; margin-bottom: 20px;">Please choose your device view ratio before proceeding to the system.</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button onclick="setDeviceRatio('mobile')" style="background-color: #4f46e5; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: background 0.2s;">📱 Phone / Mobile View</button>
+                <button onclick="setDeviceRatio('desktop')" style="background-color: #2563eb; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: background 0.2s;">💻 Laptop / Desktop View</button>
+                <button onclick="setDeviceRatio('autodetect')" style="background-color: #10b981; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px; transition: background 0.2s;">⚡ Autodetect Ratio</button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <img src="https://scary-amethyst-m5j1yvsa.edgeone.dev/c1b94530-1520-4947-b43b-6d2ba1182d29%20(1).jpg" alt="Left Logo" class="header-logo" onclick="openSettingsViaLogo()" title="Click to open Settings">
+        <h1>GRADE 12 HUMSS & ABM Smart QR Attendance</h1>
+        <img src="https://scary-amethyst-m5j1yvsa.edgeone.dev/NA%20LOGO%20UPDATED.jpg" alt="Right Logo" class="header-logo" onclick="openAdminDashboardViaLogo()" title="Click to open Admin Dashboard">
+    </header>
+
+    <!-- LOGIN MODAL -->
+    <div id="login-modal">
+        <div class="login-box">
+            <h2 style="text-align: center; margin-top: 0; font-size: 20px; font-weight: bold;">Admin Login</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="admin-user" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="admin-pass" placeholder="Enter password">
+            </div>
+            <button class="action-btn" onclick="attemptLogin()">Login</button>
+            <button class="action-btn" style="background: #9ca3af; margin-top: 8px;" onclick="closeLogin()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- EDIT MEMBER MODAL -->
+    <div id="edit-modal">
+        <div class="edit-box">
+            <h2 style="margin-top: 0; font-size: 18px; font-weight: bold;">Edit Member Info & QR</h2>
+            <input type="hidden" id="editOriginalId">
+            <div class="form-group">
+                <label>Member ID</label>
+                <input type="text" id="editMemberId">
+            </div>
+            <div class="form-group">
+                <label>6-Digit PIN Code (Attendance Code)</label>
+                <input type="text" id="editMemberPin" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="e.g. 123456" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            </div>
+            <div class="form-group">
+                <label>Confirm 6-Digit PIN Code</label>
+                <input type="text" id="editMemberConfirmPin" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Re-enter 6-digit PIN" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="editMemberName">
+            </div>
+            <div class="form-group">
+                <label>Role / Department</label>
+                <input type="text" id="editMemberRole">
+            </div>
+            <div class="form-group">
+                <label>Age</label>
+                <input type="number" id="editMemberAge">
+            </div>
+            <div class="form-group">
+                <label>Gender</label>
+                <select id="editMemberGender">
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Section / Class</label>
+                <input type="text" id="editMemberSection">
+            </div>
+            
+            <div class="form-group">
+                <label>Profile Picture</label>
+                <div id="editDropZone" class="drop-zone" onclick="document.getElementById('editMemberPhotoFile').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleEditDrop(event)" tabindex="0" onpaste="handleEditPaste(event)">
+                    <span id="editDropText">Drag & drop, paste, or click</span>
+                    <img id="editPreviewImg" src="" alt="Preview">
+                </div>
+                <input type="file" id="editMemberPhotoFile" accept="image/*" style="display: none;" onchange="handleEditFileSelect(event)">
+            </div>
+
+            <div class="form-group">
+                <label>Member's QR Code</label>
+                <div id="edit-qrcode-container"></div>
+            </div>
+
+            <button class="action-btn" onclick="saveEditedMember()">Save Changes</button>
+            <button class="action-btn" style="background: #9ca3af; margin-top: 8px;" onclick="closeEditModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- TABS BAR -->
+    <div class="tabs">
+        <button class="tab-btn active" id="btn-scanner" onclick="switchTab('scanner')">Scanner</button>
+        <button class="tab-btn" id="btn-student-login" onclick="switchTab('student-login')">Student Portal QR</button>
+        <button class="tab-btn" id="btn-register" onclick="switchTab('register')">Register Member <span style="font-size:11px">🔒</span></button>
+        <button class="tab-btn" id="btn-list" onclick="switchTab('list')">Member's List <span style="font-size:11px">🔒</span></button>
+        <button class="tab-btn" id="btn-admin-dashboard" onclick="switchTab('admin-dashboard')">Admin Dashboard <span style="font-size:11px">🔒</span></button>
+        <button class="tab-btn" id="btn-settings" onclick="switchTab('settings')" style="display: none;">Settings</button>
+        <button class="tab-btn" id="btn-logs" onclick="switchTab('logs')">Attendance Logs</button>
+        <button class="tab-btn" id="btn-functions" onclick="switchTab('functions')">Functions (Roulette)</button>
+    </div>
+
+    <!-- SCANNER SECTION -->
+    <div id="scanner" class="content-section active">
+        <div class="scanner-landscape-wrapper">
+            <div class="scanner-pane">
+                <h3 style="margin-top: 0; text-align: center; font-size: 16px; font-weight: bold;">Scan QR Code</h3>
+                <div class="form-group">
+                    <label for="camera-select" style="text-align: center;">Choose Camera:</label>
+                    <select id="camera-select"></select>
+                </div>
+                <div id="reader"></div>
+
+                <div class="pin-card-container">
+                    <h4>No QR Code? Use 6-Digit PIN</h4>
+                    <input type="text" id="pin-input" class="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Enter 6-Digit PIN" oninput="handlePinInput(this)">
+                    <button id="pin-submit-btn" class="action-btn" onclick="submitPinAttendance()">Submit PIN Attendance</button>
+                </div>
+            </div>
+
+            <div class="result-pane">
+                <div id="scan-feedback" class="scan-result-card scan-idle">
+                    <h3 id="scan-title" style="margin:0; font-size: 15px; color: #1e40af; font-weight: bold;">System Clock</h3>
+                    
+                    <div id="id-card-wrapper" class="id-card">
+                        <img id="id-photo-disp" class="id-photo" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Profile">
+                        <div class="id-details">
+                            <span id="id-role-badge" class="id-badge">LIVE</span>
+                            <h2 id="id-name-disp">Ready for Scanning</h2>
+                            <p><strong>ID:</strong> <span id="id-number-disp">---</span></p>
+                            <p><strong>Age:</strong> <span id="id-age-disp">---</span> | <strong>Gender:</strong> <span id="id-gender-disp">---</span></p>
+                            <p><strong>Section:</strong> <span id="id-section-disp">---</span></p>
+                            <p id="id-time-disp" style="font-size: 12px; margin-top: 4px; color: #6b7280;">Please hold a QR code in front of the camera.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="recent-scans-area" class="recent-scans-wrapper"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STUDENT LOGIN PORTAL QR SECTION -->
+    <div id="student-login" class="content-section">
+        <h2 style="margin-top: 0; font-size: 18px; text-align: center; font-weight: bold;">Student Login Portal QR</h2>
+        <p style="text-align: center; color: #4b5563; font-size: 13px;">I-scan ng mga estudyante ang QR code na ito gamit ang kanilang mobile device para makadirekta sa Student Login Portal.</p>
+        
+        <div class="form-group" style="max-width: 450px; margin: 15px auto;">
+            <label for="portal-url-input" style="text-align: center;">Student Portal URL / Link:</label>
+            <input type="text" id="portal-url-input" placeholder="e.g., https://yourdomain.com/student_login.html" oninput="generateStudentPortalQR()">
+        </div>
+
+        <div id="student-portal-qrcode-container"></div>
+
+        <div style="text-align: center; margin-top: 15px;">
+            <button class="action-btn" style="max-width: 280px; margin: 0 auto; background-color: #2563eb;" onclick="openPortalLink()">🔗 Test / Open Portal Link</button>
+        </div>
+    </div>
+
+    <!-- DATABASE TAB SECTION -->
+    <div id="database" class="content-section">
+        <h2 style="margin-top: 0; font-size: 18px; text-align: center; font-weight: bold;">Master Database & Summary QR Code</h2>
+        <p style="text-align: center; color: #4b5563; font-size: 13px;">This is the QR code containing Student Data as well as the complete attendance logs for the Admin Dashboard.</p>
+        
+        <div class="form-group" style="max-width: 300px; margin: 15px auto 10px auto;">
+            <label for="database-date-select" style="text-align: center;">Select Date for Database QR:</label>
+            <input type="date" id="database-date-select" onchange="refreshDatabaseQRData()">
+        </div>
+
+        <div style="max-width: 280px; margin: 0 auto 15px auto;">
+            <button class="action-btn" style="background-color: #2563eb; font-size: 14px;" onclick="refreshDatabaseQRData()">
+                🔄 Refresh QR Data
+            </button>
+            <div id="db-refresh-msg" style="text-align: center; font-size: 12px; color: #16a34a; font-weight: bold; margin-top: 6px; min-height: 18px;"></div>
+        </div>
+
+        <div id="database-qrcode-container"></div>
+        <p style="text-align: center; font-size: 12px; color: #6b7280; margin-top: 10px;">Scan this QR code using the Admin Scanner on the Dashboard to automatically load the database and student data without losing stored records.</p>
+    </div>
+
+    <!-- REGISTER SECTION -->
+    <div id="register" class="content-section">
+        <h2 style="margin-top: 0; font-size: 18px; font-weight: bold;">Register New Member</h2>
+        <div class="form-group">
+            <label>Member ID (Must be unique)</label>
+            <input type="text" id="memberId" placeholder="e.g., EMP-001">
+        </div>
+
+        <div class="form-group">
+            <label>6-Digit PIN Code (Attendance Code)</label>
+            <input type="text" id="memberPin" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="e.g. 123456" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+        <div class="form-group">
+            <label>Confirm 6-Digit PIN Code</label>
+            <input type="text" id="memberConfirmPin" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Re-enter 6-digit PIN" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+
+        <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="memberName" placeholder="e.g., Juan Dela Cruz">
+        </div>
+        <div class="form-group">
+            <label>Role / Department</label>
+            <input type="text" id="memberRole" placeholder="e.g., Student / IT Dept">
+        </div>
+        <div class="form-group">
+            <label>Age</label>
+            <input type="number" id="memberAge" placeholder="e.g., 17">
+        </div>
+        <div class="form-group">
+            <label>Gender</label>
+            <select id="memberGender">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Section / Class</label>
+            <input type="text" id="memberSection" placeholder="e.g., Grade 12 St. Blaise (HUMSS)">
+        </div>
+
+        <div class="form-group">
+            <label>Profile Picture (Drag & Drop, Paste, or Click)</label>
+            <div id="regDropZone" class="drop-zone" onclick="document.getElementById('memberPhotoFile').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleRegDrop(event)" tabindex="0" onpaste="handleRegPaste(event)">
+                <span id="regDropText">Drag & drop image here, paste (Ctrl+V), or click to browse</span>
+                <img id="regPreviewImg" src="" alt="Preview">
+            </div>
+            <input type="file" id="memberPhotoFile" accept="image/*" style="display: none;" onchange="handleRegFileSelect(event)">
+        </div>
+
+        <button class="action-btn" onclick="processRegistration()">Save & Generate QR</button>
+
+        <div id="qrcode-container"></div>
+
+        <div class="data-transfer-container">
+            <h3 style="margin-top: 0; font-size: 16px; font-weight: bold;">Backup & Restore Members Data</h3>
+            <p style="font-size: 13px; color: #4b5563;">Export all registered members (including profile pictures) or import them back onto another device/browser.</p>
+            
+            <button class="action-btn" style="background-color: #059669;" onclick="exportMembersData()">Export Members Data with Profile (JSON)</button>
+            
+            <div style="margin-top: 10px;">
+                <label for="importFile" style="cursor: pointer; display: inline-block; background-color: #2563eb; color: white; padding: 8px 15px; border-radius: 4px; text-align: center; width: 100%; box-sizing: border-box; font-size: 14px; font-weight: bold;">
+                    Import Members Data (JSON)
+                </label>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importMembersData(event)">
+            </div>
+        </div>
+    </div>
+
+    <!-- MEMBER'S LIST SECTION -->
+    <div id="list" class="content-section">
+        <h2 style="margin-top: 0; font-size: 18px; font-weight: bold;">Encoded Members List (<span id="total-members-count">0</span> Total)</h2>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Photo</th>
+                        <th>ID</th>
+                        <th>PIN</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Age/Gender</th>
+                        <th>Section</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="member-list-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ADMIN DASHBOARD SECTION -->
+    <div id="admin-dashboard" class="content-section">
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+            <h2 style="margin:0; font-size: 20px; font-weight: bold; color: #1f2937;">Admin Dashboard</h2>
+            <div class="flex items-center gap-2">
+                <span class="text-xs px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium inline-flex items-center gap-1.5">
+                    <span class="flashing-green-dot"></span>
+                    Connected to Server
+                </span>
+                <button id="logout-btn" onclick="logout()" class="text-xs px-3 py-1 bg-red-100 text-red-800 hover:bg-red-200 rounded-full font-medium border-none cursor-pointer" style="display: none;">Logout Admin</button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4 mb-6 border-2 border-indigo-200">
+            <h3 class="text-md font-bold text-indigo-700 mb-1">Scan Database QR from Database Tab</h3>
+            <p class="text-xs text-gray-500 mb-3">Open the "Database (QR)" tab on any device and scan the large QR code here to load the data.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div>
+                    <label for="admin-camera-select" class="block text-xs font-medium text-gray-600 mb-1">Select Camera:</label>
+                    <select id="admin-camera-select" class="w-full border rounded-lg p-2 text-sm mb-3"></select>
+                    <button onclick="toggleAdminScanner()" id="toggle-scanner-btn" class="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 w-full">Start Scanner</button>
+                </div>
+                <div class="flex justify-center">
+                    <div id="admin-reader" class="w-full max-w-sm rounded-lg overflow-hidden border-2 border-indigo-500 bg-black" style="display: none; min-height: 240px;"></div>
+                </div>
+            </div>
+            <div id="scan-status-msg" class="mt-2 text-center text-sm font-medium text-green-600"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white rounded-lg shadow p-5 md:col-span-1 border">
+                <h3 class="text-md font-bold text-gray-700 mb-3">Calendar Filter</h3>
+                <label for="adminDate" class="block text-xs font-medium text-gray-600 mb-1">Select Date:</label>
+                <input type="date" id="adminDate" class="w-full border rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 mb-4" onchange="renderAdminDashboardData()">
+                
+                <div class="mb-4">
+                    <label for="adminImportJsonFile" class="cursor-pointer block bg-purple-600 text-white text-xs font-bold py-2 px-3 rounded text-center hover:bg-purple-700 transition">
+                        📥 Import JSON File
+                    </label>
+                    <input type="file" id="adminImportJsonFile" accept=".json" class="hidden" onchange="importAdminJsonData(event)">
+                </div>
+
+                <div class="space-y-3 pt-3 border-t">
+                    <div class="flex justify-between items-center bg-green-50 p-3 rounded-lg border border-green-200">
+                        <span class="text-sm font-medium text-green-700">Total Present:</span>
+                        <span id="totalPresent" class="text-xl font-bold text-green-800">0</span>
+                    </div>
+                    <div class="flex justify-between items-center bg-red-50 p-3 rounded-lg border border-red-200">
+                        <span class="text-sm font-medium text-red-700">Total Absent:</span>
+                        <span id="totalAbsent" class="text-xl font-bold text-red-800">0</span>
+                    </div>
+                </div>
+
+                <button class="action-btn" style="background-color: #10B981; margin-top: 15px; text-align: center;" onclick="exportAdminDashboardReport()">Export Report (.xlsx)</button>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-5 md:col-span-2 border">
+                <h3 class="text-md font-bold text-gray-700 mb-3">Present and Absent for Selected Date</h3>
+                <div class="overflow-x-auto max-h-64 overflow-y-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Details / Section</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status & Toggle</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminAttendanceBody" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-5 border">
+            <h3 class="text-md font-bold text-gray-700 mb-3">Members / Students List</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Information / Section</th>
+                        </tr>
+                    </thead>
+                    <tbody id="membersTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- FUNCTIONS (SPIN ROULETTE) SECTION -->
+    <div id="functions" class="content-section">
+        <h2 style="margin-top: 0; color: #1f2937; text-align: center; font-size: 18px; font-weight: bold;">Student Attendance Spin Roulette</h2>
+        <p style="color: #4b5563; font-size: 13px; text-align: center;">Select a date to load all students/members marked as present, then spin the wheel!</p>
+
+        <div style="display: flex; gap: 10px; max-width: 400px; margin: 0 auto 15px auto; align-items: flex-end;">
+            <div class="form-group" style="flex-grow: 1; margin-bottom: 0;">
+                <label for="roulette-filter-date">Select Date:</label>
+                <input type="text" id="roulette-filter-date" placeholder="e.g. 9/6/2026 or MM/DD/YYYY">
+            </div>
+            <button class="action-btn" style="margin-top: 0; padding: 9px 15px; width: auto;" onclick="loadPresentParticipants()">Load Present</button>
+        </div>
+
+        <div class="roulette-container">
+            <div class="wheel-pointer"></div>
+            <canvas id="wheelCanvas" width="400" height="400"></canvas>
+        </div>
+
+        <button id="spin-btn" class="action-btn" onclick="spinWheel()" disabled style="max-width: 320px; margin: 10px auto;">Spin the Wheel!</button>
+
+        <div id="winner-card">
+            <h3 style="margin: 0 0 5px 0; color: #15803d; font-size: 18px;">🎉 WINNER! 🎉</h3>
+            <p id="winner-name" style="font-size: 20px; font-weight: bold; margin: 5px 0; color: #111827;"></p>
+            <p id="winner-details" style="font-size: 13px; color: #4b5563; margin: 0;"></p>
+        </div>
+    </div>
+
+    <!-- SETTINGS SECTION -->
+    <div id="settings" class="content-section">
+        <h2 style="margin-top: 0; font-size: 18px; font-weight: bold;">System & Display Settings</h2>
+        
+        <div class="form-group" style="max-width: 400px; margin-bottom: 25px;">
+            <label>Website View Zoom: <span id="website-zoom-val" style="color: var(--primary);">100%</span></label>
+            <input type="range" id="website-zoom-slider" min="0.5" max="1.5" step="0.05" value="1" oninput="changeWebsiteZoom()">
+            <button class="action-btn" style="background: #6b7280; margin-top: 8px; font-size: 13px; padding: 6px;" onclick="resetWebsiteZoom()">Reset Zoom (100%)</button>
+        </div>
+
+        <div class="data-transfer-container" style="max-width: 450px;">
+            <h3 style="margin-top: 0; font-size: 16px; font-weight: bold;">Change Admin Credentials</h3>
+            <p style="font-size: 13px; color: #4b5563;">Update the secure username and password used across all admin tabs.</p>
+            
+            <div class="form-group">
+                <label>New Admin Username</label>
+                <input type="text" id="new-admin-user" placeholder="Enter new username">
+            </div>
+            <div class="form-group">
+                <label>New Admin Password</label>
+                <input type="password" id="new-admin-pass" placeholder="Enter new password">
+            </div>
+            <button class="action-btn" style="background-color: #4f46e5;" onclick="updateAdminCredentials()">Save New Credentials</button>
+        </div>
+    </div>
+
+    <!-- LOGS SECTION -->
+    <div id="logs" class="content-section">
+        <h2 style="margin-top: 0; font-size: 18px; font-weight: bold;">Attendance Record</h2>
+        <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+            <button class="action-btn" style="background-color: #10B981; width: auto; margin: 0;" onclick="exportAllAttendanceLogs()">Export All Logs to Excel (.xlsx)</button>
+            <button class="action-btn" style="background-color: #0284c7; width: auto; margin: 0;" onclick="exportTodayJson()">Export Today's Data as JSON</button>
+            <button class="action-btn" style="background-color: #8b5cf6; width: auto; margin: 0;" onclick="sendTodayJsonViaBluetooth()">📲 Send JSON via Bluetooth</button>
+            <button class="action-btn" style="background-color: #2563eb; width: auto; margin: 0;" onclick="sendLogsViaEmail()">Send Attendance via Gmail</button>
+            <button class="action-btn" style="background-color: #ef4444; width: auto; margin: 0;" onclick="clearLogs()">Clear All Logs</button>
+        </div>
+
+        <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4" style="font-size: 13px;">
+            <h3 style="font-weight: bold; color: #3730a3; margin-top: 0; margin-bottom: 8px; font-size: 15px;">⚙ Auto-Export JSON, Bluetooth & Daily Timeout Settings</h3>
+            
+            <div class="mb-3 bg-white p-2.5 rounded border border-indigo-100 flex items-center gap-2">
+                <input type="checkbox" id="autoBluetoothToggle" class="w-4 h-4 text-indigo-600 rounded" onchange="toggleAutoBluetoothSetting(this)">
+                <label for="autoBluetoothToggle" class="font-bold text-gray-800 cursor-pointer text-xs">
+                    📱 Automatically trigger Bluetooth Device Share when timer/timeout is reached
+                </label>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white p-3 rounded border">
+                    <label class="font-bold block mb-1 text-gray-700">Daily Auto-Download Timeout (24h Time):</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="time" id="dailyTimeoutTime" class="border rounded p-1 text-sm flex-grow">
+                        <button class="bg-indigo-600 text-white font-bold px-3 py-1 rounded text-xs hover:bg-indigo-700" onclick="saveDailyTimeoutSetting()">Save Time</button>
+                    </div>
+                    <span id="timeoutStatusMsg" class="text-xs text-indigo-700 font-bold block mt-1">Status: Timeout idle</span>
+                </div>
+
+                <div class="bg-white p-3 rounded border">
+                    <label class="font-bold block mb-1 text-gray-700">Custom Countdown Timer (Minutes):</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" id="countdownMinutes" min="1" placeholder="e.g. 10" class="border rounded p-1 text-sm flex-grow">
+                        <button class="bg-green-600 text-white font-bold px-3 py-1 rounded text-xs hover:bg-green-700" onclick="startCountdownTimer()">Start Timer</button>
+                        <button class="bg-gray-500 text-white font-bold px-2 py-1 rounded text-xs hover:bg-gray-600" onclick="stopCountdownTimer()">Stop</button>
+                    </div>
+                    <span id="countdownStatusMsg" class="text-xs text-green-700 font-bold block mt-1">Timer: Not running</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Member ID</th>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Section</th>
+                    </tr>
+                </thead>
+                <tbody id="log-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <div>GRADE 12</div>
+        <div>Naujan Academy Inc</div>
+        <div>ADVISER: Howard Kent C. Baldonado</div>
+    </footer>
+
+    <script>
+        const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+
+        function readStoredData(key, fallback) {
+            try {
+                const value = localStorage.getItem(key);
+                return value ? JSON.parse(value) : fallback;
+            } catch (error) {
+                console.warn(`Unable to read ${key}; keeping current session data.`, error);
+                return fallback;
+            }
+        }
+
+        function saveAllAttendanceData() {
+            localStorage.setItem('membersDB', JSON.stringify(membersDB));
+            localStorage.setItem('attendanceLogs', JSON.stringify(attendanceLogs));
+        }
+
+        let membersDB = readStoredData('membersDB', {});
+        let attendanceLogs = readStoredData('attendanceLogs', []);
+        
+        let html5QrCode = null;
+        let adminHtml5QrCode = null;
+        let isAdminScannerRunning = false;
+        let currentCameraId = null; 
+        let regPhotoBase64 = "";
+        let editPhotoBase64 = "";
+        let isAdminLoggedIn = false;
+        let pendingTab = null;
+        let liveClockTimer = null;
+        let lastScanTime = 0;
+        const SCAN_COOLDOWN_MS = 2000;
+
+        let countdownInterval = null;
+        let countdownSecondsLeft = 0;
+        let scheduleCheckInterval = null;
+
+        let inactivityTimer = null;
+        let standbyTimer = null;
+
+        function setDeviceRatio(mode) {
+            const modal = document.getElementById('device-select-modal');
+            if (modal) modal.style.display = 'none';
+
+            if (mode === 'mobile') {
+                if (window.innerWidth > 500) {
+                    document.body.style.maxWidth = '480px';
+                    document.body.style.margin = '0 auto';
+                    document.body.style.boxShadow = '0 0 25px rgba(0,0,0,0.4)';
+                    document.body.style.transform = 'scale(1)';
+                    document.body.style.width = '100%';
+                } else {
+                    document.body.style.maxWidth = '100%';
+                    document.body.style.margin = '0';
+                    document.body.style.boxShadow = 'none';
+                    document.body.style.transform = 'scale(1)';
+                    document.body.style.width = '100%';
+                }
+            } else if (mode === 'desktop') {
+                if (window.innerWidth < 1024) {
+                    const scaleVal = Math.max(window.innerWidth / 1200, 0.45);
+                    document.body.style.transform = `scale(${scaleVal})`;
+                    document.body.style.transformOrigin = 'top center';
+                    document.body.style.width = '1200px';
+                    document.body.style.margin = '0 auto';
+                    document.body.style.boxShadow = 'none';
+                } else {
+                    document.body.style.maxWidth = '100%';
+                    document.body.style.margin = '0';
+                    document.body.style.boxShadow = 'none';
+                    document.body.style.transform = 'scale(1)';
+                    document.body.style.width = '100%';
+                }
+            } else {
+                document.body.style.maxWidth = '100%';
+                document.body.style.margin = '0';
+                document.body.style.boxShadow = 'none';
+                document.body.style.transform = 'scale(1)';
+                document.body.style.width = '100%';
+            }
+            localStorage.setItem('selectedDeviceMode', mode);
+        }
+
+        function resetInactivityTimer() {
+            if (inactivityTimer) clearTimeout(inactivityTimer);
+            if (standbyTimer) clearTimeout(standbyTimer);
+
+            const recentScansArea = document.getElementById('recent-scans-area');
+            if (recentScansArea) recentScansArea.classList.remove('fade-out');
+
+            inactivityTimer = setTimeout(() => {
+                if (recentScansArea) recentScansArea.classList.add('fade-out');
+            }, 5000);
+
+            standbyTimer = setTimeout(() => {
+                resetSystemClockToStandby();
+            }, 10000);
+        }
+
+        function resetSystemClockToStandby() {
+            const scanFeedback = document.getElementById('scan-feedback');
+            const scanTitle = document.getElementById('scan-title');
+            if (!scanFeedback || !scanTitle) return;
+
+            scanFeedback.className = 'scan-result-card scan-idle';
+            scanTitle.innerText = 'System Clock';
+
+            document.getElementById('id-photo-disp').src = DEFAULT_AVATAR;
+            document.getElementById('id-name-disp').innerText = 'Ready for Scanning';
+            document.getElementById('id-number-disp').innerText = '---';
+            document.getElementById('id-role-badge').innerText = 'LIVE';
+            document.getElementById('id-age-disp').innerText = '---';
+            document.getElementById('id-gender-disp').innerText = '---';
+            document.getElementById('id-section-disp').innerText = '---';
+
+            const now = new Date();
+            document.getElementById('id-time-disp').innerText = `Current Time: ${now.toLocaleTimeString()} | ${now.toLocaleDateString()}`;
+        }
+
+        let currentParticipants = [];
+        let startAngle = 0;
+        let arc = 0;
+        let spinTimeout = null;
+        let spinAngleStart = 0;
+        let spinTime = 0;
+        let spinTimeTotal = 0;
+        let isSpinning = false;
+
+        const rouletteColors = [
+            '#4f46e5', '#06b6d4', '#10b981', '#f59e0b', 
+            '#ef4444', '#8b5cf6', '#ec4899', '#3b82f6'
+        ];
+
+        function getStoredAdminUser() { return localStorage.getItem('adminUser') || 'admin'; }
+        function getStoredAdminPass() { return localStorage.getItem('adminPass') || 'admin'; }
+
+        window.addEventListener('storage', function(event) {
+            if (event.key === 'attendanceLogs' || event.key === 'membersDB') {
+                attendanceLogs = readStoredData('attendanceLogs', attendanceLogs);
+                membersDB = readStoredData('membersDB', membersDB);
+                
+                const adminDashboard = document.getElementById('admin-dashboard');
+                if (adminDashboard && adminDashboard.classList.contains('active')) {
+                    renderAdminDashboardData();
+                }
+                
+                const memberList = document.getElementById('list');
+                if (memberList && memberList.classList.contains('active')) {
+                    renderMemberList();
+                }
+
+                const databaseSec = document.getElementById('database');
+                if (databaseSec && databaseSec.classList.contains('active')) {
+                    generateDatabaseQRCode();
+                }
+
+                const rouletteSec = document.getElementById('functions');
+                if (rouletteSec && rouletteSec.classList.contains('active')) {
+                    loadPresentParticipants();
+                }
+            }
+        });
+
+        window.onload = function() {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const defaultYMD = `${yyyy}-${mm}-${dd}`;
+
+            const adminDateInput = document.getElementById('adminDate');
+            if (adminDateInput) adminDateInput.value = defaultYMD;
+
+            const dbDateInput = document.getElementById('database-date-select');
+            if (dbDateInput) dbDateInput.value = defaultYMD;
+
+            const rouletteDateInput = document.getElementById('roulette-filter-date');
+            if (rouletteDateInput) rouletteDateInput.value = now.toLocaleDateString();
+
+            const savedAutoBT = localStorage.getItem('autoBluetoothEnabled');
+            const toggleEl = document.getElementById('autoBluetoothToggle');
+            if (toggleEl) toggleEl.checked = (savedAutoBT === 'true');
+
+            const savedTimeout = localStorage.getItem('dailyTimeoutTime');
+            if (savedTimeout) {
+                const timeoutEl = document.getElementById('dailyTimeoutTime');
+                if (timeoutEl) timeoutEl.value = savedTimeout;
+                const statusMsg = document.getElementById('timeoutStatusMsg');
+                if (statusMsg) statusMsg.innerText = `Status: Scheduled for ${savedTimeout} daily`;
+            }
+
+            initScanner();
+            startLiveClock();
+            renderRecentScans();
+            initAdminScannerSelect();
+            resetInactivityTimer();
+            initDailyScheduleCheck();
+        };
+
+        function toggleAutoBluetoothSetting(el) {
+            localStorage.setItem('autoBluetoothEnabled', el.checked ? 'true' : 'false');
+        }
+
+        function saveDailyTimeoutSetting() {
+            const val = document.getElementById('dailyTimeoutTime').value;
+            if (!val) { alert("Please select a valid time."); return; }
+            localStorage.setItem('dailyTimeoutTime', val);
+            document.getElementById('timeoutStatusMsg').innerText = `Status: Scheduled for ${val} daily`;
+            alert(`Daily auto-download timeout set to ${val}`);
+        }
+
+        function startCountdownTimer() {
+            const minsInput = document.getElementById('countdownMinutes');
+            const mins = parseInt(minsInput.value, 10);
+            if (!mins || mins <= 0) { alert("Please enter a valid number of minutes."); return; }
+
+            if (countdownInterval) clearInterval(countdownInterval);
+            countdownSecondsLeft = mins * 60;
+
+            const statusMsg = document.getElementById('countdownStatusMsg');
+            
+            function updateDisplay() {
+                const m = Math.floor(countdownSecondsLeft / 60);
+                const s = countdownSecondsLeft % 60;
+                statusMsg.innerText = `Timer Running: ${m}m ${s < 10 ? '0' : ''}${s}s remaining`;
+            }
+
+            updateDisplay();
+            countdownInterval = setInterval(() => {
+                countdownSecondsLeft--;
+                if (countdownSecondsLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    statusMsg.innerText = "Timer Finished! Exporting data...";
+                    exportTodayJson();
+                    if (document.getElementById('autoBluetoothToggle').checked) {
+                        sendTodayJsonViaBluetooth();
+                    }
+                } else {
+                    updateDisplay();
+                }
+            }, 1000);
+        }
+
+        function stopCountdownTimer() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            document.getElementById('countdownStatusMsg').innerText = "Timer: Stopped";
+        }
+
+        function initDailyScheduleCheck() {
+            if (scheduleCheckInterval) clearInterval(scheduleCheckInterval);
+            scheduleCheckInterval = setInterval(() => {
+                const savedTimeout = localStorage.getItem('dailyTimeoutTime');
+                if (!savedTimeout) return;
+
+                const now = new Date();
+                const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                const lastTriggeredDate = localStorage.getItem('lastTimeoutTriggeredDate');
+                const todayYMD = now.toISOString().slice(0, 10);
+
+                if (currentHHMM === savedTimeout && lastTriggeredDate !== todayYMD) {
+                    localStorage.setItem('lastTimeoutTriggeredDate', todayYMD);
+                    exportTodayJson();
+                    if (document.getElementById('autoBluetoothToggle').checked) {
+                        sendTodayJsonViaBluetooth();
+                    }
+                }
+            }, 30000);
+        }
+
+        /* LIGHTWEIGHT JSON EXPORT (TINANGGAL ANG BASE64 IMAGES PARA MALIIT ANG FILE SIZE) */
+        function exportTodayJson() {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const todayYMD = `${yyyy}-${mm}-${dd}`;
+
+            const todayLogs = attendanceLogs.filter(log => logMatchesDate(log, todayYMD));
+
+            // I-strip o alisin ang photo attribute sa members list
+            const cleanedMembers = {};
+            Object.keys(membersDB).forEach(id => {
+                const m = membersDB[id];
+                cleanedMembers[id] = {
+                    pin: m.pin || '',
+                    name: m.name || '',
+                    role: m.role || 'Student',
+                    age: m.age || '',
+                    gender: m.gender || '',
+                    section: m.section || ''
+                };
+            });
+
+            // Siguraduhing walang nakaimbak na image sa logs
+            const cleanedLogs = todayLogs.map(log => {
+                const { photo, image, ...cleanLog } = log;
+                return cleanLog;
+            });
+
+            const payload = {
+                date: todayYMD,
+                members: cleanedMembers,
+                logs: cleanedLogs
+            };
+
+            const jsonString = JSON.stringify(payload, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", url);
+            downloadAnchor.setAttribute("download", `attendance_today_${todayYMD}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportAllAttendanceLogs() {
+            if (!attendanceLogs || attendanceLogs.length === 0) {
+                alert("No attendance logs available to export.");
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(attendanceLogs);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Logs");
+            XLSX.writeFile(workbook, `Attendance_Logs_All_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('log-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (attendanceLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #6b7280; padding: 20px;">No attendance records found.</td></tr>`;
+                return;
+            }
+
+            attendanceLogs.slice().reverse().forEach(log => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${log.date || log.isoDate || 'N/A'}</td>
+                    <td>${log.time || 'N/A'}</td>
+                    <td><strong>${log.id}</strong></td>
+                    <td>${log.name || 'N/A'}</td>
+                    <td>${log.role || 'Student'}</td>
+                    <td>${log.section || 'N/A'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function sendTodayJsonViaBluetooth() {
+            exportTodayJson();
+            alert("Bluetooth Share Triggered: The lightweight JSON attendance file has been exported.");
+        }
+
+        function sendLogsViaEmail() {
+            exportTodayJson();
+
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const todayYMD = `${yyyy}/${mm}/${dd}`; 
+            const isoDate = `${yyyy}-${mm}-${dd}`; 
+
+            const presentIds = new Set();
+            attendanceLogs.forEach(log => {
+                if (logMatchesDate(log, isoDate)) {
+                    presentIds.add(resolveToMemberId(log.id));
+                }
+            });
+
+            let totalAbsents = 0;
+            const absentsPerSection = {};
+
+            Object.keys(membersDB).forEach(id => {
+                if (!presentIds.has(id)) {
+                    const member = membersDB[id];
+                    const section = member.section || 'Unassigned Section';
+                    
+                    if (!absentsPerSection[section]) {
+                        absentsPerSection[section] = [];
+                    }
+                    absentsPerSection[section].push(member.name);
+                    totalAbsents++;
+                }
+            });
+
+            let bodyText = `Attendance & Absent Report - ${todayYMD}\n\n`;
+            bodyText += `Date: ${now.toLocaleDateString()}\n`;
+            bodyText += `Teacher: Howard Kent C. Baldonado\n`;
+            bodyText += `Total Number of Absents: ${totalAbsents}\n\n`;
+            bodyText += `--- ABSENT STUDENTS PER SECTION ---\n\n`;
+
+            const sections = Object.keys(absentsPerSection).sort();
+            
+            if (sections.length === 0) {
+                bodyText += `Walang absent na estudyante ngayon.\n`;
+            } else {
+                sections.forEach(sec => {
+                    absentsPerSection[sec].sort();
+                    bodyText += `Section: ${sec} (Total Absent: ${absentsPerSection[sec].length})\n`;
+                    absentsPerSection[sec].forEach(studentName => {
+                        bodyText += `  - ${studentName}\n`;
+                    });
+                    bodyText += `\n`;
+                });
+            }
+
+            const subject = encodeURIComponent(`Attendance & Absent Report - ${todayYMD}`);
+            window.location.href = `mailto:?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
+        }
+
+        function clearLogs() {
+            if (confirm("Are you sure you want to clear all attendance logs? This action cannot be undone.")) {
+                attendanceLogs = [];
+                localStorage.setItem('attendanceLogs', JSON.stringify(attendanceLogs));
+                renderLogs();
+                if (document.getElementById('admin-dashboard').classList.contains('active')) {
+                    renderAdminDashboardData();
+                }
+                alert("All attendance logs have been cleared.");
+            }
+        }
+
+        function openSettingsViaLogo() {
+            if (!isAdminLoggedIn) {
+                pendingTab = 'settings';
+                document.getElementById('login-modal').style.display = 'flex';
+                return;
+            }
+            switchTab('settings');
+        }
+
+        function openAdminDashboardViaLogo() {
+            if (!isAdminLoggedIn) {
+                pendingTab = 'admin-dashboard';
+                document.getElementById('login-modal').style.display = 'flex';
+                return;
+            }
+            switchTab('admin-dashboard');
+        }
+
+        function switchTab(tabId) {
+            if ((tabId === 'register' || tabId === 'list' || tabId === 'settings' || tabId === 'admin-dashboard') && !isAdminLoggedIn) {
+                pendingTab = tabId;
+                document.getElementById('login-modal').style.display = 'flex';
+                return; 
+            }
+
+            document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            const btnEl = document.getElementById('btn-' + tabId);
+            if (btnEl) btnEl.classList.add('active');
+
+            if (tabId === 'scanner') {
+                initScanner(); 
+                startLiveClock();
+                renderRecentScans();
+                resetInactivityTimer();
+            } else {
+                stopScanner();
+                if (liveClockTimer) clearInterval(liveClockTimer);
+            }
+
+            if (tabId === 'list') renderMemberList();
+            if (tabId === 'logs') renderLogs();
+            if (tabId === 'database') refreshDatabaseQRData();
+            if (tabId === 'admin-dashboard') renderAdminDashboardData();
+            if (tabId === 'functions') loadPresentParticipants();
+            if (tabId === 'student-login') generateStudentPortalQR();
+            if (tabId === 'settings') {
+                document.getElementById('new-admin-user').value = getStoredAdminUser();
+                document.getElementById('new-admin-pass').value = '';
+            }
+        }
+
+        function generateStudentPortalQR() {
+            const inputEl = document.getElementById('portal-url-input');
+            const container = document.getElementById('student-portal-qrcode-container');
+            if (!container) return;
+
+            let portalUrl = inputEl.value.trim();
+            if (!portalUrl) {
+                const currentDir = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+                portalUrl = `${currentDir}/student_login.html`;
+                inputEl.value = portalUrl;
+            }
+
+            container.innerHTML = '';
+            new QRCode(container, {
+                text: portalUrl,
+                width: 250,
+                height: 250,
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        function openPortalLink() {
+            const portalUrl = document.getElementById('portal-url-input').value.trim();
+            if (portalUrl) {
+                window.open(portalUrl, '_blank');
+            } else {
+                alert("Pakilagay muna ang valid Student Portal URL.");
+            }
+        }
+
+        function refreshDatabaseQRData() {
+            attendanceLogs = readStoredData('attendanceLogs', attendanceLogs);
+            membersDB = readStoredData('membersDB', membersDB);
+            generateDatabaseQRCode();
+
+            const msg = document.getElementById('db-refresh-msg');
+            if (msg) {
+                msg.innerText = "✔ QR Code updated to the latest data!";
+                setTimeout(() => { msg.innerText = ""; }, 3000);
+            }
+        }
+
+        function generateDatabaseQRCode() {
+            const dateVal = document.getElementById('database-date-select').value;
+            const container = document.getElementById('database-qrcode-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const cleanedMembers = {};
+            Object.keys(membersDB).forEach(id => {
+                const m = membersDB[id];
+                cleanedMembers[id] = {
+                    name: m.name || '',
+                    role: m.role || 'Student',
+                    section: m.section || '',
+                    age: m.age || '',
+                    gender: m.gender || '',
+                    pin: m.pin || ''
+                };
+            });
+
+            const payload = {
+                date: dateVal,
+                members: cleanedMembers,
+                logs: attendanceLogs
+            };
+
+            new QRCode(container, {
+                text: JSON.stringify(payload),
+                width: 320,
+                height: 320,
+                correctLevel: QRCode.CorrectLevel.L
+            });
+        }
+
+        function loadPresentParticipants() {
+            const selectedDate = document.getElementById('roulette-filter-date').value.trim();
+            
+            const presentIdsThisDate = [...new Set(
+                attendanceLogs
+                    .filter(log => log.date === selectedDate || log.isoDate === selectedDate)
+                    .map(log => resolveToMemberId(log.id))
+            )];
+
+            currentParticipants = presentIdsThisDate.map(id => {
+                const member = membersDB[id];
+                return {
+                    id: id,
+                    name: member ? member.name : id,
+                    section: member ? member.section : 'N/A'
+                };
+            });
+
+            const spinBtn = document.getElementById('spin-btn');
+            document.getElementById('winner-card').style.display = 'none';
+
+            if (currentParticipants.length === 0) {
+                spinBtn.disabled = true;
+                alert("No present attendance records found for this date!");
+            } else {
+                spinBtn.disabled = false;
+            }
+
+            drawWheel();
+        }
+
+        function drawWheel() {
+            const canvas = document.getElementById('wheelCanvas');
+            if (!canvas || !canvas.getContext) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 400, 400);
+
+            const outsideRadius = 180;
+            const textRadius = 120;
+            const insideRadius = 30;
+            const centerX = 200;
+            const centerY = 200;
+
+            if (currentParticipants.length === 0) {
+                ctx.fillStyle = "#6b7280";
+                ctx.font = "bold 16px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("No present students loaded", centerX, centerY);
+                return;
+            }
+
+            arc = Math.PI / (currentParticipants.length / 2);
+
+            for (let i = 0; i < currentParticipants.length; i++) {
+                const angle = startAngle + i * arc;
+                ctx.fillStyle = rouletteColors[i % rouletteColors.length];
+
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, outsideRadius, angle, angle + arc, false);
+                ctx.arc(centerX, centerY, insideRadius, angle + arc, angle, true);
+                ctx.stroke();
+                ctx.fill();
+
+                ctx.save();
+                ctx.shadowOffsetX = -1;
+                ctx.shadowOffsetY = -1;
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = "white";
+                ctx.font = "bold 14px sans-serif";
+                
+                let text = currentParticipants[i].name;
+                if (text.length > 15) text = text.substring(0, 14) + '...';
+
+                ctx.translate(centerX + Math.cos(angle + arc / 2) * textRadius, centerY + Math.sin(angle + arc / 2) * textRadius);
+                ctx.rotate(angle + arc / 2 + Math.PI / 2);
+                ctx.fillText(text, -ctx.measureText(text).width / 2, 0);
+                ctx.restore();
+            }
+
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, insideRadius, 0, 2 * Math.PI, false);
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary') || '#4f46e5';
+            ctx.stroke();
+        }
+
+        function spinWheel() {
+            if (isSpinning || currentParticipants.length === 0) return;
+            isSpinning = true;
+            document.getElementById('winner-card').style.display = 'none';
+            document.getElementById('spin-btn').disabled = true;
+
+            spinAngleStart = Math.random() * 10 + 20;
+            spinTime = 0;
+            spinTimeTotal = Math.random() * 3000 + 4000;
+            rotateWheel();
+        }
+
+        function rotateWheel() {
+            spinTime += 30;
+            if (spinTime >= spinTimeTotal) {
+                stopRotateWheel();
+                return;
+            }
+            const spinAngle = spinAngleStart - easeOut(spinTime, 0, spinAngleStart, spinTimeTotal);
+            startAngle += (spinAngle * Math.PI / 180);
+            drawWheel();
+            spinTimeout = setTimeout(rotateWheel, 30);
+        }
+
+        function stopRotateWheel() {
+            isSpinning = false;
+            clearTimeout(spinTimeout);
+            document.getElementById('spin-btn').disabled = false;
+
+            const degrees = startAngle * 180 / Math.PI + 90;
+            const arcd = arc * 180 / Math.PI;
+            const index = Math.floor((360 - (degrees % 360)) / arcd);
+            
+            const winningParticipant = currentParticipants[index % currentParticipants.length];
+
+            document.getElementById('winner-name').innerText = winningParticipant.name;
+            document.getElementById('winner-details').innerText = `ID: ${winningParticipant.id} | Section: ${winningParticipant.section}`;
+            document.getElementById('winner-card').style.display = 'block';
+        }
+
+        function easeOut(t, b, c, d) {
+            let ts = (t /= d) * t;
+            let tc = ts * t;
+            return b + c * (tc + -3 * ts + 3 * t);
+        }
+
+        function attemptLogin() {
+            const user = document.getElementById('admin-user').value;
+            const pass = document.getElementById('admin-pass').value;
+
+            if (user === getStoredAdminUser() && pass === getStoredAdminPass()) {
+                isAdminLoggedIn = true;
+                document.getElementById('login-modal').style.display = 'none';
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) logoutBtn.style.display = 'inline-block';
+                document.getElementById('admin-pass').value = ''; 
+                if (pendingTab) {
+                    switchTab(pendingTab);
+                    pendingTab = null;
+                }
+            } else {
+                alert("Invalid username or password!");
+            }
+        }
+
+        function closeLogin() {
+            document.getElementById('login-modal').style.display = 'none';
+            pendingTab = null;
+        }
+
+        function logout() {
+            isAdminLoggedIn = false;
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) logoutBtn.style.display = 'none';
+            alert("You have successfully logged out.");
+            switchTab('scanner'); 
+        }
+
+        function updateAdminCredentials() {
+            const newUser = document.getElementById('new-admin-user').value.trim();
+            const newPass = document.getElementById('new-admin-pass').value;
+
+            if (!newUser || !newPass) {
+                alert("Username and password cannot be empty!");
+                return;
+            }
+
+            localStorage.setItem('adminUser', newUser);
+            localStorage.setItem('adminPass', newPass);
+            alert("Admin credentials updated successfully!");
+            document.getElementById('new-admin-pass').value = '';
+        }
+
+        function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('dragover'); }
+        function handleDragLeave(e) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); }
+        function handleRegDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); if (e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0], 'reg'); }
+        function handleRegFileSelect(e) { if (e.target.files && e.target.files[0]) processFile(e.target.files[0], 'reg'); }
+        function handleRegPaste(e) { handlePasteEvent(e, 'reg'); }
+        function handleEditDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); if (e.dataTransfer.files && e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0], 'edit'); }
+        function handleEditFileSelect(e) { if (e.target.files && e.target.files[0]) processFile(e.target.files[0], 'edit'); }
+        function handleEditPaste(e) { handlePasteEvent(e, 'edit'); }
+
+        function handlePasteEvent(e, mode) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    processFile(items[i].getAsFile(), mode);
+                    e.preventDefault();
+                    break;
+                }
+            }
+        }
+
+        function processFile(file, mode) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                if (mode === 'reg') {
+                    regPhotoBase64 = base64;
+                    const preview = document.getElementById('regPreviewImg');
+                    preview.src = base64; preview.style.display = 'inline-block';
+                    document.getElementById('regDropText').style.display = 'none';
+                } else if (mode === 'edit') {
+                    editPhotoBase64 = base64;
+                    const preview = document.getElementById('editPreviewImg');
+                    preview.src = base64; preview.style.display = 'inline-block';
+                    document.getElementById('editDropText').style.display = 'none';
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function exportMembersData() {
+            const jsonString = JSON.stringify(membersDB);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", url);
+            downloadAnchor.setAttribute("download", `members_full_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function importMembersData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    membersDB = JSON.parse(e.target.result);
+                    localStorage.setItem('membersDB', JSON.stringify(membersDB));
+                    alert("Members data imported successfully!");
+                    renderMemberList();
+                } catch (err) { alert("Error parsing JSON file: " + err.message); }
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
+        function processRegistration() {
+            const id = document.getElementById('memberId').value.trim();
+            const pin = document.getElementById('memberPin').value.trim();
+            const confirmPin = document.getElementById('memberConfirmPin').value.trim();
+            const name = document.getElementById('memberName').value.trim();
+            const role = document.getElementById('memberRole').value.trim();
+            const age = document.getElementById('memberAge').value.trim();
+            const gender = document.getElementById('memberGender').value;
+            const section = document.getElementById('memberSection').value.trim();
+
+            if (!id || !name) { alert("Please enter at least a Member ID and Name."); return; }
+            if (pin.length !== 6 || !/^\d{6}$/.test(pin)) { alert("The PIN code must be an exact 6-digit number."); return; }
+            if (pin !== confirmPin) { alert("The 6-digit PIN and Confirm PIN code do not match."); return; }
+
+            membersDB[id] = { pin, name, role, age, gender, section, photo: regPhotoBase64 };
+            localStorage.setItem('membersDB', JSON.stringify(membersDB));
+
+            const qrContainer = document.getElementById('qrcode-container');
+            qrContainer.innerHTML = ''; 
+            new QRCode(qrContainer, { text: id, width: 180, height: 180 });
+
+            alert("Member saved and QR generated successfully!");
+            document.getElementById('memberId').value = '';
+            document.getElementById('memberPin').value = '';
+            document.getElementById('memberConfirmPin').value = '';
+            document.getElementById('memberName').value = '';
+            document.getElementById('memberRole').value = '';
+            document.getElementById('memberAge').value = '';
+            document.getElementById('memberSection').value = '';
+            regPhotoBase64 = "";
+            document.getElementById('regPreviewImg').style.display = 'none';
+            document.getElementById('regDropText').style.display = 'block';
+        }
+
+        function renderMemberList() {
+            const tbody = document.getElementById('member-list-tbody');
+            tbody.innerHTML = '';
+            const keys = Object.keys(membersDB);
+            document.getElementById('total-members-count').innerText = keys.length;
+
+            if (keys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #6b7280; padding: 20px;">No registered members found.</td></tr>`;
+                return;
+            }
+
+            keys.forEach(id => {
+                const member = membersDB[id];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><img src="${member.photo || DEFAULT_AVATAR}" class="table-avatar" alt="Photo"></td>
+                    <td><strong>${id}</strong></td>
+                    <td><span style="font-family: monospace; font-weight: bold; background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px;">${member.pin || 'N/A'}</span></td>
+                    <td>${member.name}</td>
+                    <td>${member.role || 'N/A'}</td>
+                    <td>${member.age || 'N/A'} / ${member.gender || 'N/A'}</td>
+                    <td>${member.section || 'N/A'}</td>
+                    <td>
+                        <button style="background: #2563eb; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-right: 4px; font-size: 13px;" onclick="openEditModal('${id}')">Edit / QR</button>
+                        <button style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 13px;" onclick="deleteMember('${id}')">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openEditModal(id) {
+            const member = membersDB[id];
+            if (!member) return;
+            document.getElementById('editOriginalId').value = id;
+            document.getElementById('editMemberId').value = id;
+            document.getElementById('editMemberPin').value = member.pin || '';
+            document.getElementById('editMemberConfirmPin').value = member.pin || '';
+            document.getElementById('editMemberName').value = member.name || '';
+            document.getElementById('editMemberRole').value = member.role || '';
+            document.getElementById('editMemberAge').value = member.age || '';
+            document.getElementById('editMemberGender').value = member.gender || '';
+            document.getElementById('editMemberSection').value = member.section || '';
+            editPhotoBase64 = member.photo || "";
+            const preview = document.getElementById('editPreviewImg');
+            if (editPhotoBase64) { preview.src = editPhotoBase64; preview.style.display = 'inline-block'; document.getElementById('editDropText').style.display = 'none'; }
+            
+            const editQrContainer = document.getElementById('edit-qrcode-container');
+            editQrContainer.innerHTML = '';
+            new QRCode(editQrContainer, { text: id, width: 130, height: 130 });
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+
+        function closeEditModal() { document.getElementById('edit-modal').style.display = 'none'; }
+
+        function saveEditedMember() {
+            const originalId = document.getElementById('editOriginalId').value;
+            const newId = document.getElementById('editMemberId').value.trim();
+            const pin = document.getElementById('editMemberPin').value.trim();
+            const name = document.getElementById('editMemberName').value.trim();
+
+            if (!newId || !name) { alert("Member ID and Name cannot be empty."); return; }
+            if (originalId !== newId) delete membersDB[originalId];
+
+            membersDB[newId] = {
+                pin, name,
+                role: document.getElementById('editMemberRole').value.trim(),
+                age: document.getElementById('editMemberAge').value.trim(),
+                gender: document.getElementById('editMemberGender').value,
+                section: document.getElementById('editMemberSection').value.trim(),
+                photo: editPhotoBase64
+            };
+
+            localStorage.setItem('membersDB', JSON.stringify(membersDB));
+            closeEditModal();
+            renderMemberList();
+            alert("Member details updated successfully!");
+        }
+
+        function deleteMember(id) {
+            if (confirm(`Are you sure you want to delete member ID: ${id}?`)) {
+                delete membersDB[id];
+                localStorage.setItem('membersDB', JSON.stringify(membersDB));
+                renderMemberList();
+            }
+        }
+
+        function logMatchesDate(log, selectedDateYMD) {
+            if (log.isoDate === selectedDateYMD) return true;
+            if (log.date === selectedDateYMD) return true;
+            try {
+                const logDateObj = new Date(log.date || log.timestamp);
+                const yyyy = logDateObj.getFullYear();
+                const mm = String(logDateObj.getMonth() + 1).padStart(2, '0');
+                const dd = String(logDateObj.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}` === selectedDateYMD;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        function resolveToMemberId(input) {
+            if (membersDB[input]) return input;
+            const foundKey = Object.keys(membersDB).find(k => membersDB[k].pin === input);
+            return foundKey || input;
+        }
+
+        function toggleStudentStatus(memberId) {
+            const dateInput = document.getElementById('adminDate').value;
+            if (!dateInput) return;
+
+            const member = membersDB[memberId];
+            if (!member) return;
+
+            const existingIndex = attendanceLogs.findIndex(log => 
+                (log.id === memberId || resolveToMemberId(log.id) === memberId) && 
+                logMatchesDate(log, dateInput)
+            );
+
+            if (existingIndex !== -1) {
+                attendanceLogs.splice(existingIndex, 1);
+            } else {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString();
+                attendanceLogs.push({
+                    date: dateInput,
+                    isoDate: dateInput,
+                    id: memberId,
+                    name: member.name,
+                    role: member.role || 'Student',
+                    section: member.section || 'N/A',
+                    time: timeStr
+                });
+            }
+
+            saveAllAttendanceData();
+            
+            setTimeout(() => {
+                renderAdminDashboardData();
+            }, 250);
+        }
+
+        function importAdminJsonData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    let importedLogs = [];
+                    let importedMembers = {};
+
+                    if (parsed.members) {
+                        importedMembers = parsed.members;
+                    }
+
+                    if (Array.isArray(parsed.students)) {
+                        parsed.students.forEach(st => {
+                            if (st.id && !importedMembers[st.id]) {
+                                importedMembers[st.id] = {
+                                    name: st.name || '',
+                                    role: st.role || 'Student',
+                                    section: st.section || '',
+                                    pin: st.pin || ''
+                                };
+                            }
+                            if (st.status === 'Present' && st.timeIn && st.timeIn !== 'N/A') {
+                                const targetDate = parsed.date || new Date().toISOString().slice(0, 10);
+                                importedLogs.push({
+                                    id: st.id,
+                                    name: st.name,
+                                    role: st.role || 'Student',
+                                    section: st.section || 'N/A',
+                                    date: targetDate,
+                                    isoDate: targetDate,
+                                    time: st.timeIn
+                                });
+                            }
+                        });
+                    }
+
+                    if (parsed.logs) importedLogs = parsed.logs;
+                    if (Array.isArray(parsed) && !parsed.members) importedLogs = parsed;
+
+                    Object.keys(importedMembers).forEach(id => {
+                        if (!membersDB[id]) {
+                            membersDB[id] = importedMembers[id];
+                        } else {
+                            membersDB[id] = { ...importedMembers[id], ...membersDB[id] };
+                        }
+                    });
+
+                    const logKey = log => `${log.id}_${log.isoDate || log.date}_${log.time}`;
+                    const existingKeys = new Set(attendanceLogs.map(logKey));
+
+                    importedLogs.forEach(log => {
+                        if (!existingKeys.has(logKey(log))) {
+                            attendanceLogs.push(log);
+                            existingKeys.add(logKey(log));
+                        }
+                    });
+
+                    saveAllAttendanceData();
+                    if (parsed.date) {
+                        document.getElementById('adminDate').value = parsed.date;
+                    }
+
+                    renderAdminDashboardData();
+                    alert("JSON data imported successfully! Records merged seamlessly.");
+                } catch (err) {
+                    alert("Error parsing JSON File: " + err.message);
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function renderAdminDashboardData() {
+            const dateInput = document.getElementById('adminDate').value;
+            if (!dateInput) return;
+
+            const adminAttendanceBody = document.getElementById('adminAttendanceBody');
+            const membersTableBody = document.getElementById('membersTableBody');
+            adminAttendanceBody.innerHTML = '';
+            membersTableBody.innerHTML = '';
+
+            const memberIds = Object.keys(membersDB);
+            const presentMemberIds = new Set();
+            const presentLogsMap = {};
+
+            attendanceLogs.forEach(log => {
+                if (logMatchesDate(log, dateInput)) {
+                    const resolvedId = resolveToMemberId(log.id);
+                    if (membersDB[resolvedId]) {
+                        presentMemberIds.add(resolvedId);
+                        presentLogsMap[resolvedId] = log.time;
+                    }
+                }
+            });
+
+            let presentCount = 0;
+            let absentCount = 0;
+
+            if (memberIds.length === 0) {
+                adminAttendanceBody.innerHTML = `<tr><td colspan="3" class="px-4 py-3 text-center text-gray-500">No members recorded in the database.</td></tr>`;
+            } else {
+                memberIds.forEach(id => {
+                    const member = membersDB[id];
+                    const isPresent = presentMemberIds.has(id);
+
+                    if (isPresent) presentCount++;
+                    else absentCount++;
+
+                    const status = isPresent ? 'Present' : 'Absent';
+                    const statusClass = isPresent 
+                        ? 'bg-green-100 text-green-800 border-green-300' 
+                        : 'bg-red-100 text-red-800 border-red-300';
+                    const detailText = isPresent ? `Time In: ${presentLogsMap[id]}` : (member.section || 'N/A');
+
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-sm font-medium text-gray-900">${member.name}</td>
+                        <td class="px-4 py-2 text-sm text-gray-500">${detailText}</td>
+                        <td class="px-4 py-2 text-sm flex items-center gap-3">
+                            <label class="toggle-switch" title="Toggle Present/Absent">
+                                <input type="checkbox" ${isPresent ? 'checked' : ''} onchange="toggleStudentStatus('${id}')">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full border ${statusClass} shadow-sm transition-all duration-300" style="min-width: 75px; justify-content: center;">
+                                ${status}
+                            </span>
+                        </td>
+                    `;
+                    adminAttendanceBody.appendChild(row);
+                });
+            }
+
+            document.getElementById('totalPresent').textContent = presentCount;
+            document.getElementById('totalAbsent').textContent = absentCount;
+
+            if (memberIds.length === 0) {
+                membersTableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-3 text-center text-sm text-gray-500">No member data available.</td></tr>`;
+            } else {
+                memberIds.forEach(id => {
+                    const member = membersDB[id];
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-sm text-gray-500 font-bold">${id}</td>
+                        <td class="px-4 py-2 text-sm font-medium text-gray-900">${member.name}</td>
+                        <td class="px-4 py-2 text-sm text-gray-500">${member.role || 'Student'}</td>
+                        <td class="px-4 py-2 text-sm text-gray-500">${member.section || 'N/A'}</td>
+                    `;
+                    membersTableBody.appendChild(row);
+                });
+            }
+        }
+
+        function exportAdminDashboardReport() {
+            const dateInput = document.getElementById('adminDate').value;
+            if (!dateInput) { alert("Please select a date first."); return; }
+
+            const reportData = [];
+            const memberIds = Object.keys(membersDB);
+            const presentMemberIds = new Set();
+            const presentLogsMap = {};
+
+            attendanceLogs.forEach(log => {
+                if (logMatchesDate(log, dateInput)) {
+                    const resolvedId = resolveToMemberId(log.id);
+                    if (membersDB[resolvedId]) {
+                        presentMemberIds.add(resolvedId);
+                        presentLogsMap[resolvedId] = log.time;
+                    }
+                }
+            });
+
+            memberIds.forEach(id => {
+                const member = membersDB[id];
+                const isPresent = presentMemberIds.has(id);
+                reportData.push({
+                    Date: dateInput,
+                    MemberID: id,
+                    Name: member.name,
+                    Role: member.role || 'Student',
+                    Section: member.section || 'N/A',
+                    Status: isPresent ? 'Present' : 'Absent',
+                    TimeIn: isPresent ? presentLogsMap[id] : 'N/A'
+                });
+            });
+
+            if (reportData.length === 0) { alert("No members data to export."); return; }
+
+            const worksheet = XLSX.utils.json_to_sheet(reportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, `Attendance_${dateInput}`);
+            XLSX.writeFile(workbook, `Attendance_Report_${dateInput}.xlsx`);
+        }
+
+        function initScanner() {
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    const cameraSelect = document.getElementById('camera-select');
+                    cameraSelect.innerHTML = ''; 
+                    devices.forEach((device, idx) => {
+                        const option = document.createElement('option');
+                        option.value = device.id;
+                        option.text = device.label || `Camera ${idx + 1}`;
+                        cameraSelect.appendChild(option);
+                    });
+                    if (!currentCameraId) currentCameraId = devices[0].id;
+                    cameraSelect.onchange = (e) => { currentCameraId = e.target.value; restartScanner(); };
+                    startScannerWithId(currentCameraId);
+                }
+            }).catch(err => console.error("Error getting cameras", err));
+        }
+
+        function startScannerWithId(cameraId) {
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start(cameraId, { fps: 10, qrbox: { width: 220, height: 220 } }, onScanSuccess, () => {}).catch(err => console.error(err));
+        }
+
+        function restartScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => startScannerWithId(currentCameraId));
+            } else {
+                startScannerWithId(currentCameraId);
+            }
+        }
+
+        function stopScanner() { if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop(); }
+
+        function displayMemberCardDetails(memberId, member, timeStr, dateStr) {
+            document.getElementById('id-photo-disp').src = member.photo || DEFAULT_AVATAR;
+            document.getElementById('id-name-disp').innerText = member.name || 'Member Found';
+            document.getElementById('id-number-disp').innerText = memberId;
+            document.getElementById('id-role-badge').innerText = member.role || 'Student';
+            document.getElementById('id-age-disp').innerText = member.age || 'N/A';
+            document.getElementById('id-gender-disp').innerText = member.gender || 'N/A';
+            document.getElementById('id-section-disp').innerText = member.section || 'N/A';
+            document.getElementById('id-time-disp').innerText = `Time In: ${timeStr} (${dateStr})`;
+        }
+
+        function onScanSuccess(decodedText) {
+            const nowMs = Date.now();
+            if (nowMs - lastScanTime < SCAN_COOLDOWN_MS) return;
+            lastScanTime = nowMs;
+
+            resetInactivityTimer();
+
+            const memberId = resolveToMemberId(decodedText.trim());
+            const now = new Date();
+            const dateStr = now.toLocaleDateString();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const isoDateStr = `${yyyy}-${mm}-${dd}`;
+            const timeStr = now.toLocaleTimeString();
+
+            const scanFeedback = document.getElementById('scan-feedback');
+            const scanTitle = document.getElementById('scan-title');
+
+            if (membersDB[memberId]) {
+                const member = membersDB[memberId];
+                const alreadyPresent = attendanceLogs.some(log => (log.id === memberId || resolveToMemberId(log.id) === memberId) && logMatchesDate(log, isoDateStr));
+
+                if (alreadyPresent) {
+                    scanFeedback.className = 'scan-result-card scan-duplicate';
+                    scanTitle.innerText = '⚠️ Duplicate Attendance';
+                } else {
+                    const newLog = {
+                        date: dateStr,
+                        isoDate: isoDateStr,
+                        id: memberId,
+                        name: member.name,
+                        role: member.role || 'Student',
+                        section: member.section || 'N/A',
+                        time: timeStr
+                    };
+                    attendanceLogs.push(newLog);
+                    localStorage.setItem('attendanceLogs', JSON.stringify(attendanceLogs));
+
+                    scanFeedback.className = 'scan-result-card scan-success';
+                    scanTitle.innerText = '✔ Attendance Recorded!';
+                }
+
+                displayMemberCardDetails(memberId, member, timeStr, dateStr);
+
+                const adminDash = document.getElementById('admin-dashboard');
+                if (adminDash && adminDash.classList.contains('active')) {
+                    renderAdminDashboardData();
+                }
+
+            } else {
+                scanFeedback.className = 'scan-result-card scan-warning';
+                scanTitle.innerText = '❌ Unregistered QR / PIN';
+            }
+        }
+    </script>
+</body>
+</html>

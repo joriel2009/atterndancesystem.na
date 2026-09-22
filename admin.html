@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRADE 12 HUMSS & ABM Attendance Dashboard</title>
+    
+    <!-- External Libraries -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --surface: #ffffff;
+            --text: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background-color: #f3f4f6;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://scary-amethyst-m5j1yvsa.edgeone.dev/IN%20GATE.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: blur(5px);
+            -webkit-filter: blur(5px);
+            transform: scale(1.05);
+            z-index: -1;
+        }
+
+        header {
+            background-color: rgba(79, 70, 229, 0.9);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .header-logo {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+            text-align: center;
+            padding: 0 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            color: white;
+        }
+
+        footer {
+            background-color: rgba(79, 70, 229, 0.9);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            box-shadow: 0 -4px 6px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            margin-top: auto;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        footer div {
+            flex: 1;
+            text-align: center;
+        }
+
+        footer div:first-child {
+            text-align: left;
+        }
+
+        footer div:last-child {
+            text-align: right;
+        }
+
+        .content-container {
+            max-width: 1050px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            width: calc(100% - 50px);
+            box-sizing: border-box;
+        }
+
+        .flashing-green-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #15803d;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-dot 1.2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-dot {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.2; transform: scale(0.75); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        button.action-btn {
+            background-color: #10B981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            width: 100%;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button.action-btn:hover {
+            background-color: #059669;
+        }
+
+        #login-modal {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-box {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        .nav-tab-btn {
+            padding: 7px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .nav-tab-btn.active {
+            background-color: #4f46e5;
+            color: white;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+        }
+        .nav-tab-btn.inactive {
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+        .nav-tab-btn.inactive:hover {
+            background-color: #d1d5db;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="login-modal">
+        <div class="login-box">
+            <h2 style="text-align: center; margin-top: 0; font-size: 20px; font-weight: bold; color: #1f2937;">Admin Access</h2>
+            <p style="text-align: center; font-size: 13px; color: #6b7280; margin-bottom: 15px;">Please authenticate to access the system.</p>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="admin-user" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="admin-pass" placeholder="Enter password">
+            </div>
+            <button class="action-btn" style="background-color: #4f46e5;" onclick="attemptLogin()">Login</button>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header>
+        <img src="https://scary-amethyst-m5j1yvsa.edgeone.dev/c1b94530-1520-4947-b43b-6d2ba1182d29%20(1).jpg" alt="Left Logo" class="header-logo">
+        <h1 id="header-title">GRADE 12 HUMSS & ABM Attendance Dashboard</h1>
+        <img src="https://scary-amethyst-m5j1yvsa.edgeone.dev/NA%20LOGO%20UPDATED.jpg" alt="Right Logo" class="header-logo">
+    </header>
+
+    <!-- MAIN ADMIN DASHBOARD VIEW -->
+    <main id="dashboard-view" class="content-container" style="display: none;">
+        <div class="flex justify-between items-center mb-4 border-b pb-3 flex-wrap gap-2">
+            <!-- HEADING WITH PROFILE IMAGE AND DYNAMIC NAME -->
+            <div class="flex items-center gap-3">
+                <img id="dashboard-avatar" src="" alt="Profile" class="w-10 h-10 rounded-full object-cover border-2 border-indigo-500 shadow hidden flex-shrink-0">
+                <h2 id="dashboard-heading" style="margin:0; font-size: 18px; font-weight: bold; color: #1f2937;">
+                    <span id="dashboard-name"></span> Dashboard
+                </h2>
+            </div>
+
+            <!-- TAB SWITCHING BUTTONS -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <button id="tab-dashboard-btn" onclick="switchTab('dashboard')" class="nav-tab-btn active">Dashboard</button>
+                <button id="tab-roulette-btn" onclick="switchTab('roulette')" class="nav-tab-btn inactive">Roulette</button>
+                <button id="tab-members-btn" onclick="switchTab('members')" class="nav-tab-btn inactive">Members List</button>
+                <button id="tab-range-btn" onclick="switchTab('range')" class="nav-tab-btn inactive">Perfect Attendance & Range</button>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <span class="text-xs px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium inline-flex items-center gap-1.5">
+                    <span class="flashing-green-dot"></span>
+                    Connected
+                </span>
+                <button id="admin-settings-btn" onclick="showSettingsView()" class="text-xs px-2.5 py-1 bg-indigo-100 text-indigo-800 hover:bg-indigo-200 rounded-full font-medium border-none cursor-pointer">Settings</button>
+                <button id="clear-data-btn" onclick="clearAllData()" class="text-xs px-2.5 py-1 bg-red-100 text-red-800 hover:bg-red-200 rounded-full font-medium border-none cursor-pointer">Clear Data</button>
+                <button id="logout-btn" onclick="logout()" class="text-xs px-2.5 py-1 bg-red-100 text-red-800 hover:bg-red-200 rounded-full font-medium border-none cursor-pointer">Logout</button>
+            </div>
+        </div>
+
+        <!-- ================= TAB 1: DASHBOARD VIEW ================= -->
+        <div id="sub-view-dashboard">
+            <!-- SCAN DATABASE QR SECTION -->
+            <div class="bg-white rounded-lg shadow p-4 mb-6 border-2 border-indigo-200">
+                <h3 class="text-md font-bold text-indigo-700 mb-1">Scan Database QR from Database Tab</h3>
+                <p class="text-xs text-gray-500 mb-3">Open the "Database (QR)" tab on any device and scan the large QR code here to load the data.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                    <div>
+                        <label for="admin-camera-select" class="block text-xs font-medium text-gray-600 mb-1">Select Camera:</label>
+                        <select id="admin-camera-select" class="w-full border rounded-lg p-2 text-sm mb-3"></select>
+                        <button onclick="toggleAdminScanner()" id="toggle-scanner-btn" class="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 w-full transition">Start Scanner</button>
+                    </div>
+                    <div class="flex justify-center">
+                        <div id="admin-reader" class="w-full max-w-sm rounded-lg overflow-hidden border-2 border-indigo-500 bg-black" style="display: none; min-height: 240px;"></div>
+                    </div>
+                </div>
+                <div id="scan-status-msg" class="mt-2 text-center text-sm font-medium text-green-600"></div>
+            </div>
+
+            <!-- CALENDAR & PRESENT/ABSENT SEPARATE TABLES -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <!-- CALENDAR CONTROLS & UNIVERSAL FOLDER / FILE DROP ZONE -->
+                <div class="bg-white rounded-lg shadow p-5 md:col-span-1 border">
+                    <h3 class="text-md font-bold text-gray-700 mb-3">Calendar Filter</h3>
+                    <label for="adminDate" class="block text-xs font-medium text-gray-600 mb-1">Select Date:</label>
+                    <input type="date" id="adminDate" class="w-full border rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 mb-4" onchange="renderAdminDashboardData()">
+                    
+                    <!-- UNIVERSAL FOLDER / FILE DROP & UPLOAD ZONE -->
+                    <div id="drop-zone" 
+                         class="mb-4 border-2 border-dashed border-purple-300 hover:border-purple-500 bg-purple-50 hover:bg-purple-100 p-4 rounded-lg text-center cursor-pointer transition flex flex-col items-center justify-center gap-1"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event)">
+                        <svg class="w-8 h-8 text-purple-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                        </svg>
+                        <p class="text-xs font-bold text-purple-800">Drop FOLDER or JSON Files Here</p>
+                        <p class="text-[10px] text-purple-600 mb-1">Pwede mag-paste (Ctrl+V) o pumili sa ibaba:</p>
+                        
+                        <div class="flex gap-2 mt-1">
+                            <button type="button" onclick="event.stopPropagation(); document.getElementById('adminImportFolderInput').click()" class="text-[11px] bg-purple-600 text-white font-semibold px-2.5 py-1 rounded shadow hover:bg-purple-700 transition">📁 Select Folder</button>
+                            <button type="button" onclick="event.stopPropagation(); document.getElementById('adminImportFileInput').click()" class="text-[11px] bg-indigo-600 text-white font-semibold px-2.5 py-1 rounded shadow hover:bg-indigo-700 transition">📄 Select Files</button>
+                        </div>
+
+                        <!-- HIDDEN FILE INPUTS FOR FOLDER AND MULTIPLE FILES -->
+                        <input type="file" id="adminImportFolderInput" accept=".json,application/json,*/*" multiple webkitdirectory directory class="hidden" onchange="importAdminJsonData(event)">
+                        <input type="file" id="adminImportFileInput" accept=".json,application/json,*/*" multiple class="hidden" onchange="importAdminJsonData(event)">
+                    </div>
+
+                    <div class="space-y-3 pt-3 border-t">
+                        <div class="flex justify-between items-center bg-green-50 p-3 rounded-lg border border-green-200">
+                            <span class="text-sm font-medium text-green-700">Total Present:</span>
+                            <span id="totalPresent" class="text-xl font-bold text-green-800">0</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-red-50 p-3 rounded-lg border border-red-200">
+                            <span class="text-sm font-medium text-red-700">Total Absent:</span>
+                            <span id="totalAbsent" class="text-xl font-bold text-red-800">0</span>
+                        </div>
+                    </div>
+
+                    <button class="action-btn" onclick="exportAdminDashboardReport()">Export Report (.xlsx)</button>
+                </div>
+
+                <!-- SEPARATE PRESENT AND ABSENT TABLES -->
+                <div class="md:col-span-2 space-y-6">
+                    <!-- PRESENT STUDENTS TABLE -->
+                    <div class="bg-white rounded-lg shadow p-4 border border-green-200">
+                        <h3 class="text-sm font-bold text-green-700 mb-2 flex items-center justify-between">
+                            <span>Present Students (Alphabetical by Last Name)</span>
+                            <span id="presentBadgeCount" class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">0</span>
+                        </h3>
+                        <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-green-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-green-800 uppercase">Name</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-green-800 uppercase">Time In</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-green-800 uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminPresentBody" class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ABSENT STUDENTS TABLE -->
+                    <div class="bg-white rounded-lg shadow p-4 border border-red-200">
+                        <h3 class="text-sm font-bold text-red-700 mb-2 flex items-center justify-between">
+                            <span>Absent Students (Alphabetical by Last Name)</span>
+                            <span id="absentBadgeCount" class="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">0</span>
+                        </h3>
+                        <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-red-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-red-800 uppercase">Name</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-red-800 uppercase">Section</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-red-800 uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminAbsentBody" class="bg-white divide-y divide-gray-200"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: ROULETTE VIEW ================= -->
+        <div id="sub-view-roulette" style="display: none;">
+            <div class="bg-white rounded-lg shadow p-6 border text-center max-w-2xl mx-auto">
+                <h3 class="text-xl font-bold text-indigo-700 mb-2">Student Picker Wheel of Names</h3>
+                <p class="text-xs text-gray-500 mb-4">Automatically loaded with students marked as present for the selected date.</p>
+
+                <!-- Settings Controls for Roulette -->
+                <div class="flex flex-wrap justify-center items-center gap-4 mb-4 bg-gray-50 p-3 rounded-lg border">
+                    <div class="text-sm font-medium text-gray-700">
+                        Available Present Students: <span id="roulette-count" class="font-bold text-indigo-600">0</span>
+                    </div>
+                    <button onclick="resetRoulettePool()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded font-medium transition">Reload / Reset Pool</button>
+                </div>
+
+                <!-- WHEEL OF NAMES CONTAINER WITH FIXED POINTER -->
+                <div class="relative w-80 h-80 mx-auto mb-6 flex items-center justify-center">
+                    <!-- Fixed Pointer on Right Side -->
+                    <div class="absolute right-0 z-20 w-0 h-0 border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent border-r-[24px] border-r-red-600 drop-shadow-md" style="transform: translateX(10px);"></div>
+                    
+                    <!-- Rotating Wheel Canvas -->
+                    <div id="wheel-container" class="w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-indigo-600 relative transition-all" style="transition-timing-function: cubic-bezier(0.15, 0.9, 0.2, 1);">
+                        <canvas id="roulette-canvas" width="320" height="320" class="w-full h-full"></canvas>
+                    </div>
+
+                    <!-- Center Pin -->
+                    <div class="absolute z-10 w-8 h-8 bg-white border-2 border-indigo-700 rounded-full shadow-md flex items-center justify-center">
+                        <div class="w-3 h-3 bg-indigo-600 rounded-full"></div>
+                    </div>
+                </div>
+
+                <!-- Winner Announcement Box -->
+                <div id="roulette-winner-box" class="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg max-w-md mx-auto">
+                    <span id="roulette-name" class="text-base font-extrabold text-indigo-900 tracking-wide">Click Spin to Start!</span>
+                    <div id="roulette-details" class="text-xs text-gray-500 mt-1"></div>
+                </div>
+
+                <!-- Post-Spin Action Option Container -->
+                <div id="post-spin-options" class="hidden mb-4 p-3 bg-green-50 border-2 border-green-300 rounded-lg max-w-md mx-auto">
+                    <h4 class="text-xs font-bold text-green-900 uppercase mb-2">🎉 Choose Action for Winner:</h4>
+                    <div class="flex justify-center gap-3">
+                        <button onclick="handleSpinChoice('remove')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded shadow transition">Remove from Roulette</button>
+                        <button onclick="handleSpinChoice('keep')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded shadow transition">Keep in Roulette</button>
+                    </div>
+                </div>
+
+                <!-- Spin Action Button -->
+                <button id="spin-btn" onclick="startRouletteSpin()" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg px-8 py-3 rounded-xl shadow-lg transform active:scale-95 transition w-full md:w-auto min-w-[200px]">
+                    SPIN WHEEL 🎲
+                </button>
+
+                <!-- Current Pool List Preview -->
+                <div class="mt-6 text-left border-t pt-4">
+                    <h4 class="text-xs font-bold text-gray-600 uppercase mb-2">Current Active Pool List:</h4>
+                    <div id="roulette-pool-list" class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 bg-gray-50 rounded border text-xs">
+                        <!-- Dynamic tags injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: MEMBERS / STUDENTS LIST VIEW ================= -->
+        <div id="sub-view-members" style="display: none;">
+            <div class="bg-white rounded-lg shadow p-5 border">
+                <h3 class="text-md font-bold text-gray-700 mb-3">Members / Students List (Sorted by Last Name)</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Information / Section</th>
+                            </tr>
+                        </thead>
+                        <tbody id="membersTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 4: PERFECT ATTENDANCE & RANGE ANALYSIS ================= -->
+        <div id="sub-view-range" style="display: none;">
+            <!-- DATE RANGE CONTROLS -->
+            <div class="bg-white rounded-lg shadow p-5 border mb-6">
+                <h3 class="text-md font-bold text-gray-700 mb-1">Filter Attendance by Date Range</h3>
+                <p class="text-xs text-gray-500 mb-4">I-set ang "From" at "To" dates upang makita ang talaan ng mga estudyante at ang mga walang absent kailanman sa napiling hanay ng petsa.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end mb-4">
+                    <div>
+                        <label for="rangeFromDate" class="block text-xs font-medium text-gray-600 mb-1">Date From:</label>
+                        <input type="date" id="rangeFromDate" class="w-full border rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="renderRangeAttendanceData()">
+                    </div>
+                    <div>
+                        <label for="rangeToDate" class="block text-xs font-medium text-gray-600 mb-1">Date To:</label>
+                        <input type="date" id="rangeToDate" class="w-full border rounded-lg p-2 text-sm focus:ring-indigo-500 focus:border-indigo-500" onchange="renderRangeAttendanceData()">
+                    </div>
+                    <div>
+                        <button onclick="renderRangeAttendanceData()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-4 py-2 rounded-lg w-full transition shadow">Apply Date Range Filter</button>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-xs text-indigo-900 flex justify-between items-center flex-wrap gap-2">
+                    <span><strong>Total Active School Days (in selected range):</strong> <span id="totalSchoolDaysCount" class="font-bold text-sm text-indigo-700">0</span> days</span>
+                    <button onclick="exportRangeReport()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded text-xs transition shadow">Export Range Summary (.xlsx)</button>
+                </div>
+            </div>
+
+            <!-- HIGHLIGHTED BOX FOR NO ABSENT STUDENTS -->
+            <div class="bg-emerald-50 border-2 border-emerald-300 rounded-lg shadow p-5 mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-base font-extrabold text-emerald-900 flex items-center gap-2">
+                        <span>🏆 Perfect Attendance (No Absent)</span>
+                        <span id="noAbsentCountBadge" class="bg-emerald-200 text-emerald-900 text-xs px-2.5 py-0.5 rounded-full font-bold">0 Students</span>
+                    </h3>
+                </div>
+                <div id="noAbsentCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    <!-- Dynamic cards for No Absent students -->
+                </div>
+            </div>
+
+            <!-- ALL STUDENTS SUMMARY TABLE FOR SELECTED RANGE -->
+            <div class="bg-white rounded-lg shadow p-5 border">
+                <h3 class="text-md font-bold text-gray-700 mb-3">Student Attendance Breakdown (Sorted by Last Name)</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
+                                <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
+                                <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-500 uppercase">Total Present</th>
+                                <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-500 uppercase">Total Absent</th>
+                                <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-500 uppercase">Attendance Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rangeTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ADMIN SETTINGS VIEW -->
+    <main id="settings-view" class="content-container" style="display: none;">
+        <div class="flex justify-between items-center mb-6 border-b pb-3">
+            <h2 style="margin:0; font-size: 20px; font-weight: bold; color: #1f2937;">Admin Account & Profile Settings</h2>
+            <button onclick="showDashboardView()" class="text-xs px-3 py-1 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-full font-medium border-none cursor-pointer">← Back to Dashboard</button>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6 border max-w-xl mx-auto">
+            <h3 class="text-md font-bold text-indigo-700 mb-4 pb-2 border-b">Personal Information</h3>
+            
+            <div class="form-group mb-4">
+                <label for="settings-name">Full Name</label>
+                <input type="text" id="settings-name" placeholder="e.g. Howard Kent C. Baldonado">
+            </div>
+
+            <div class="form-group mb-4">
+                <label for="settings-gender">Gender / Honorific</label>
+                <select id="settings-gender">
+                    <option value="male">Male (Sir)</option>
+                    <option value="female">Female (Ma'am)</option>
+                </select>
+            </div>
+
+            <!-- PROFILE PICTURE UPLOAD FIELD -->
+            <div class="form-group mb-4">
+                <label>Profile Image / Picture</label>
+                <input type="file" id="settings-avatar-input" accept="image/*" onchange="handleAvatarSelect(event)">
+                <div class="mt-3 flex items-center gap-4">
+                    <img id="settings-avatar-preview" src="" alt="Preview" class="w-16 h-16 rounded-full object-cover border-2 border-indigo-500 hidden shadow">
+                    <button type="button" onclick="clearAvatarSelection()" id="clear-avatar-btn" class="text-xs text-red-600 hover:text-red-800 font-semibold underline hidden">Remove Profile Picture</button>
+                </div>
+            </div>
+
+            <h3 class="text-md font-bold text-indigo-700 mb-4 pt-2 pb-2 border-b">Login Credentials</h3>
+
+            <div class="form-group mb-4">
+                <label for="settings-username">Admin Username</label>
+                <input type="text" id="settings-username" placeholder="Enter new username">
+            </div>
+
+            <div class="form-group mb-6">
+                <label for="settings-password">Admin Password</label>
+                <input type="password" id="settings-password" placeholder="Enter new password">
+            </div>
+
+            <div class="flex gap-3">
+                <button class="action-btn" style="background-color: #4f46e5;" onclick="saveAdminSettings()">Save Settings</button>
+                <button class="action-btn" style="background-color: #6b7280;" onclick="showDashboardView()">Cancel</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div>GRADE 12</div>
+        <div>Naujan Academy Inc</div>
+        <div id="footer-adviser">ADVISER: Howard Kent C. Baldonado</div>
+    </footer>
+
+    <script>
+        function readStoredData(key, fallback) {
+            try {
+                const value = localStorage.getItem(key);
+                return value ? JSON.parse(value) : fallback;
+            } catch (error) {
+                console.warn(`Unable to read ${key}; using fallback.`, error);
+                return fallback;
+            }
+        }
+
+        let membersDB = readStoredData('membersDB', {});
+        let attendanceLogs = readStoredData('attendanceLogs', []);
+        
+        let adminHtml5QrCode = null;
+        let isAdminScannerRunning = false;
+        let isAuthenticated = false;
+        let tempAvatarBase64 = null;
+
+        // Roulette State
+        let activeRoulettePool = [];
+        let currentWheelRotation = 0;
+        let lastSelectedWinner = null;
+
+        const wheelColors = [
+            '#f87171', '#fb923c', '#fbbf24', '#34d399', 
+            '#38bdf8', '#818cf8', '#c084fc', '#f472b6',
+            '#4ade80', '#22d3ee', '#60a5fa', '#a78bfa'
+        ];
+
+        function getStoredAdminUser() { return localStorage.getItem('adminUser') || 'admin'; }
+        function getStoredAdminPass() { return localStorage.getItem('adminPass') || 'admin'; }
+        function getStoredAdminName() { return localStorage.getItem('adminName') || 'Howard Kent C. Baldonado'; }
+        function getStoredAdminGender() { return localStorage.getItem('adminGender') || 'male'; }
+        function getStoredAdminAvatar() { return localStorage.getItem('adminAvatar') || ''; }
+
+        function updateTitleHeaderUI() {
+            const name = getStoredAdminName();
+            const gender = getStoredAdminGender();
+            const prefix = gender === 'female' ? "Ma'am " : "Sir ";
+            
+            const formattedName = name ? `${prefix}${name}` : 'Admin';
+
+            const dashboardName = document.getElementById('dashboard-name');
+            if (dashboardName) {
+                dashboardName.textContent = formattedName + "'s";
+            }
+
+            const headerTitle = document.getElementById('header-title');
+            if (headerTitle) {
+                headerTitle.textContent = "GRADE 12 HUMSS & ABM Attendance Dashboard";
+            }
+
+            const avatarData = getStoredAdminAvatar();
+            const dashboardAvatar = document.getElementById('dashboard-avatar');
+            if (dashboardAvatar) {
+                if (avatarData) {
+                    dashboardAvatar.src = avatarData;
+                    dashboardAvatar.classList.remove('hidden');
+                } else {
+                    dashboardAvatar.classList.add('hidden');
+                }
+            }
+
+            const footerAdviser = document.getElementById('footer-adviser');
+            if (footerAdviser && name) {
+                footerAdviser.textContent = `ADVISER: ${name}`;
+            }
+        }
+
+        function handleAvatarSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    tempAvatarBase64 = e.target.result;
+                    displayAvatarPreview(tempAvatarBase64);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function displayAvatarPreview(base64Data) {
+            const preview = document.getElementById('settings-avatar-preview');
+            const clearBtn = document.getElementById('clear-avatar-btn');
+            if (base64Data) {
+                preview.src = base64Data;
+                preview.classList.remove('hidden');
+                clearBtn.classList.remove('hidden');
+            } else {
+                preview.src = '';
+                preview.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+            }
+        }
+
+        function clearAvatarSelection() {
+            tempAvatarBase64 = '';
+            document.getElementById('settings-avatar-input').value = '';
+            displayAvatarPreview('');
+        }
+
+        function showSettingsView() {
+            document.getElementById('dashboard-view').style.display = 'none';
+            document.getElementById('settings-view').style.display = 'block';
+
+            document.getElementById('settings-name').value = getStoredAdminName();
+            document.getElementById('settings-gender').value = getStoredAdminGender();
+            document.getElementById('settings-username').value = getStoredAdminUser();
+            document.getElementById('settings-password').value = getStoredAdminPass();
+
+            tempAvatarBase64 = getStoredAdminAvatar();
+            displayAvatarPreview(tempAvatarBase64);
+        }
+
+        function showDashboardView() {
+            document.getElementById('settings-view').style.display = 'none';
+            document.getElementById('dashboard-view').style.display = 'block';
+            renderAdminDashboardData();
+        }
+
+        // TAB SWITCHING LOGIC
+        function switchTab(tabName) {
+            const dashBtn = document.getElementById('tab-dashboard-btn');
+            const rouletteBtn = document.getElementById('tab-roulette-btn');
+            const membersBtn = document.getElementById('tab-members-btn');
+            const rangeBtn = document.getElementById('tab-range-btn');
+
+            const dashView = document.getElementById('sub-view-dashboard');
+            const rouletteView = document.getElementById('sub-view-roulette');
+            const membersView = document.getElementById('sub-view-members');
+            const rangeView = document.getElementById('sub-view-range');
+
+            dashBtn.className = "nav-tab-btn inactive";
+            rouletteBtn.className = "nav-tab-btn inactive";
+            membersBtn.className = "nav-tab-btn inactive";
+            rangeBtn.className = "nav-tab-btn inactive";
+
+            dashView.style.display = "none";
+            rouletteView.style.display = "none";
+            membersView.style.display = "none";
+            rangeView.style.display = "none";
+
+            if (tabName === 'dashboard') {
+                dashBtn.className = "nav-tab-btn active";
+                dashView.style.display = "block";
+            } else if (tabName === 'roulette') {
+                rouletteBtn.className = "nav-tab-btn active";
+                rouletteView.style.display = "block";
+                initOrResetRoulettePool();
+            } else if (tabName === 'members') {
+                membersBtn.className = "nav-tab-btn active";
+                membersView.style.display = "block";
+                renderAdminDashboardData();
+            } else if (tabName === 'range') {
+                rangeBtn.className = "nav-tab-btn active";
+                rangeView.style.display = "block";
+                renderRangeAttendanceData();
+            }
+        }
+
+        function saveAdminSettings() {
+            const name = document.getElementById('settings-name').value.trim();
+            const gender = document.getElementById('settings-gender').value;
+            const username = document.getElementById('settings-username').value.trim();
+            const password = document.getElementById('settings-password').value.trim();
+
+            if (!username || !password) {
+                alert("Username and Password cannot be empty!");
+                return;
+            }
+
+            localStorage.setItem('adminName', name);
+            localStorage.setItem('adminGender', gender);
+            localStorage.setItem('adminUser', username);
+            localStorage.setItem('adminPass', password);
+
+            if (tempAvatarBase64 !== null) {
+                localStorage.setItem('adminAvatar', tempAvatarBase64);
+            }
+
+            updateTitleHeaderUI();
+            alert("✔ Admin settings, credentials, and profile image saved successfully!");
+            showDashboardView();
+        }
+
+        window.addEventListener('storage', function(event) {
+            if (event.key === 'attendanceLogs' || event.key === 'membersDB') {
+                attendanceLogs = readStoredData('attendanceLogs', attendanceLogs);
+                membersDB = readStoredData('membersDB', membersDB);
+                if (isAuthenticated) {
+                    renderAdminDashboardData();
+                    if (document.getElementById('sub-view-roulette').style.display === 'block') {
+                        initOrResetRoulettePool();
+                    }
+                    if (document.getElementById('sub-view-range').style.display === 'block') {
+                        renderRangeAttendanceData();
+                    }
+                }
+            }
+            if (['adminName', 'adminGender', 'adminAvatar'].includes(event.key)) {
+                updateTitleHeaderUI();
+            }
+        });
+
+        window.onload = function() {
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${yyyy}-${mm}-${dd}`;
+
+            document.getElementById('adminDate').value = todayStr;
+            document.getElementById('rangeFromDate').value = `${yyyy}-${mm}-01`;
+            document.getElementById('rangeToDate').value = todayStr;
+
+            updateTitleHeaderUI();
+            initAdminScannerSelect();
+
+            isAuthenticated = false;
+            document.getElementById('login-modal').style.display = 'flex';
+            document.getElementById('dashboard-view').style.display = 'none';
+            document.getElementById('settings-view').style.display = 'none';
+
+            document.addEventListener('paste', handleGlobalPaste);
+        };
+
+        function attemptLogin() {
+            const user = document.getElementById('admin-user').value;
+            const pass = document.getElementById('admin-pass').value;
+
+            if (user === getStoredAdminUser() && pass === getStoredAdminPass()) {
+                isAuthenticated = true;
+                document.getElementById('login-modal').style.display = 'none';
+                document.getElementById('dashboard-view').style.display = 'block';
+                document.getElementById('admin-pass').value = '';
+                renderAdminDashboardData();
+            } else {
+                alert("Invalid username or password!");
+            }
+        }
+
+        function logout() {
+            isAuthenticated = false;
+            stopAdminScannerUI();
+            document.getElementById('login-modal').style.display = 'flex';
+            document.getElementById('dashboard-view').style.display = 'none';
+            document.getElementById('settings-view').style.display = 'none';
+            document.getElementById('admin-user').value = '';
+            document.getElementById('admin-pass').value = '';
+        }
+
+        function clearAllData() {
+            const confirmed = confirm("Are you sure you want to clear all data? This will reset the dashboard and remove all stored members and attendance logs.");
+            if (confirmed) {
+                membersDB = {};
+                attendanceLogs = [];
+                localStorage.removeItem('membersDB');
+                localStorage.removeItem('attendanceLogs');
+                
+                const scanMsg = document.getElementById('scan-status-msg');
+                if (scanMsg) scanMsg.textContent = '';
+                
+                renderAdminDashboardData();
+                renderRangeAttendanceData();
+                alert("All data has been cleared successfully!");
+            }
+        }
+
+        function saveAllAttendanceData() {
+            localStorage.setItem('membersDB', JSON.stringify(membersDB));
+            localStorage.setItem('attendanceLogs', JSON.stringify(attendanceLogs));
+        }
+
+        function getNormalizedLogDate(log) {
+            if (log.isoDate) return log.isoDate;
+            if (log.date && /^\d{4}-\d{2}-\d{2}$/.test(log.date)) return log.date;
+            try {
+                const logDateObj = new Date(log.date || log.timestamp);
+                if (!isNaN(logDateObj.getTime())) {
+                    const yyyy = logDateObj.getFullYear();
+                    const mm = String(logDateObj.getMonth() + 1).padStart(2, '0');
+                    const dd = String(logDateObj.getDate()).padStart(2, '0');
+                    return `${yyyy}-${mm}-${dd}`;
+                }
+            } catch(e) {}
+            return log.date || '';
+        }
+
+        function logMatchesDate(log, selectedDateYMD) {
+            return getNormalizedLogDate(log) === selectedDateYMD;
+        }
+
+        function resolveToMemberId(input) {
+            if (membersDB[input]) return input;
+            const foundKey = Object.keys(membersDB).find(k => membersDB[k].pin === input);
+            return foundKey || input;
+        }
+
+        function getLastNameKey(fullName) {
+            if (!fullName) return '';
+            const cleaned = fullName.trim();
+            if (cleaned.includes(',')) {
+                return cleaned.split(',')[0].trim().toLowerCase();
+            }
+            const parts = cleaned.split(' ');
+            return parts[parts.length - 1].toLowerCase();
+        }
+
+        function getPresentStudentsList() {
+            const dateInput = document.getElementById('adminDate').value;
+            if (!dateInput) return [];
+
+            const presentMemberIds = new Set();
+            const presentLogsMap = {};
+
+            attendanceLogs.forEach(log => {
+                if (logMatchesDate(log, dateInput)) {
+                    const resolvedId = resolveToMemberId(log.id);
+                    if (membersDB[resolvedId]) {
+                        presentMemberIds.add(resolvedId);
+                        presentLogsMap[resolvedId] = log.time;
+                    }
+                }
+            });
+
+            const presentList = [];
+            presentMemberIds.forEach(id => {
+                const member = membersDB[id];
+                presentList.push({
+                    id: id,
+                    name: member.name,
+                    role: member.role || 'Student',
+                    section: member.section || 'N/A',
+                    timeIn: presentLogsMap[id] || 'N/A'
+                });
+            });
+
+            presentList.sort((a, b) => getLastNameKey(a.name).localeCompare(getLastNameKey(b.name)));
+            return presentList;
+        }
+
+        // --- ROULETTE WHEEL FUNCTIONS ---
+        function initOrResetRoulettePool() {
+            activeRoulettePool = getPresentStudentsList();
+            currentWheelRotation = 0;
+            document.getElementById('wheel-container').style.transform = `rotate(0deg)`;
+            renderRoulettePoolUI();
+            drawWheelCanvas();
+            document.getElementById('roulette-name').textContent = "Click Spin to Start!";
+            document.getElementById('roulette-details').textContent = "";
+            document.getElementById('post-spin-options').classList.add('hidden');
+            lastSelectedWinner = null;
+        }
+
+        function resetRoulettePool() {
+            initOrResetRoulettePool();
+            alert("✔ Roulette pool has been reloaded with all present students for the selected date.");
+        }
+
+        function renderRoulettePoolUI() {
+            const countEl = document.getElementById('roulette-count');
+            const poolListEl = document.getElementById('roulette-pool-list');
+
+            if (countEl) countEl.textContent = activeRoulettePool.length;
+
+            if (poolListEl) {
+                poolListEl.innerHTML = '';
+                if (activeRoulettePool.length === 0) {
+                    poolListEl.innerHTML = '<span class="text-gray-400 italic">No present students available in pool.</span>';
+                } else {
+                    activeRoulettePool.forEach(st => {
+                        const tag = document.createElement('span');
+                        tag.className = "bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-medium border border-indigo-200";
+                        tag.textContent = st.name;
+                        poolListEl.appendChild(tag);
+                    });
+                }
+            }
+        }
+
+        function drawWheelCanvas() {
+            const canvas = document.getElementById('roulette-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(centerX, centerY) - 5;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (activeRoulettePool.length === 0) {
+                ctx.fillStyle = '#f3f4f6';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '13px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('No Students in Pool', centerX, centerY);
+                return;
+            }
+
+            const totalSlices = activeRoulettePool.length;
+            const arcSize = (2 * Math.PI) / totalSlices;
+
+            activeRoulettePool.forEach((student, index) => {
+                const startAngle = index * arcSize;
+                const endAngle = (index + 1) * arcSize;
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = wheelColors[index % wheelColors.length];
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(startAngle + arcSize / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#1f2937';
+                ctx.font = totalSlices > 15 ? '10px sans-serif' : '12px bold sans-serif';
+                
+                let displayName = student.name;
+                if (displayName.length > 16) {
+                    displayName = displayName.substring(0, 14) + '...';
+                }
+                
+                ctx.fillText(displayName, radius - 15, 4);
+                ctx.restore();
+            });
+        }
+
+        function startRouletteSpin() {
+            if (activeRoulettePool.length === 0) {
+                alert("The roulette pool is empty! Please check if there are present students for the selected date or reset the pool.");
+                return;
+            }
+
+            const spinBtn = document.getElementById('spin-btn');
+            const wheelContainer = document.getElementById('wheel-container');
+            const optionsBox = document.getElementById('post-spin-options');
+
+            optionsBox.classList.add('hidden');
+            spinBtn.disabled = true;
+            spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            document.getElementById('roulette-name').textContent = "Spinning wheel...";
+            document.getElementById('roulette-details').textContent = "";
+
+            const totalSlices = activeRoulettePool.length;
+            const sliceDegree = 360 / totalSlices;
+
+            const winningIndex = Math.floor(Math.random() * totalSlices);
+            lastSelectedWinner = activeRoulettePool[winningIndex];
+
+            const extraSpins = 5 + Math.floor(Math.random() * 4);
+            const targetSliceCenterAngle = (winningIndex * sliceDegree) + (sliceDegree / 2);
+            const targetRotation = (extraSpins * 360) + (360 - targetSliceCenterAngle);
+
+            currentWheelRotation = targetRotation;
+
+            wheelContainer.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)';
+            wheelContainer.style.transform = `rotate(${currentWheelRotation}deg)`;
+
+            setTimeout(() => {
+                document.getElementById('roulette-name').textContent = "🎉 " + lastSelectedWinner.name + " 🎉";
+                document.getElementById('roulette-details').textContent = `Section: ${lastSelectedWinner.section} | Time In: ${lastSelectedWinner.timeIn}`;
+                
+                optionsBox.classList.remove('hidden');
+                spinBtn.disabled = false;
+                spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }, 4000);
+        }
+
+        function handleSpinChoice(choice) {
+            if (!lastSelectedWinner) return;
+
+            if (choice === 'remove') {
+                activeRoulettePool = activeRoulettePool.filter(st => st.id !== lastSelectedWinner.id);
+                renderRoulettePoolUI();
+                drawWheelCanvas();
+                alert(`✔ ${lastSelectedWinner.name} has been removed from the roulette pool.`);
+            } else {
+                alert(`✔ ${lastSelectedWinner.name} remains in the roulette pool.`);
+            }
+
+            document.getElementById('post-spin-options').classList.add('hidden');
+            document.getElementById('roulette-name').textContent = "Ready for Next Spin!";
+            document.getElementById('roulette-details').textContent = "";
+            lastSelectedWinner = null;
+        }
+
+        // --- PERFECT ATTENDANCE & RANGE ANALYSIS LOGIC ---
+        function renderRangeAttendanceData() {
+            if (!isAuthenticated) return;
+
+            const fromDate = document.getElementById('rangeFromDate').value;
+            const toDate = document.getElementById('rangeToDate').value;
+
+            const cardsContainer = document.getElementById('noAbsentCardsContainer');
+            const tableBody = document.getElementById('rangeTableBody');
+            const countBadge = document.getElementById('noAbsentCountBadge');
+            const schoolDaysEl = document.getElementById('totalSchoolDaysCount');
+
+            if (!cardsContainer || !tableBody) return;
+
+            cardsContainer.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (!fromDate || !toDate) {
+                cardsContainer.innerHTML = '<p class="text-xs text-gray-500 col-span-full italic">Pumili ng "Date From" at "Date To" para ma-kalkula ang datos.</p>';
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-xs text-gray-500">Pumili ng petsa sa itaas.</td></tr>';
+                if (schoolDaysEl) schoolDaysEl.textContent = '0';
+                if (countBadge) countBadge.textContent = '0 Students';
+                return;
+            }
+
+            if (fromDate > toDate) {
+                alert("Maling Date Range! Ang 'Date From' ay hindi pwedeng mas huli kaysa sa 'Date To'.");
+                return;
+            }
+
+            // 1. Identify all distinct active school days within selected date range from logs
+            const schoolDaysSet = new Set();
+            attendanceLogs.forEach(log => {
+                const lDate = getNormalizedLogDate(log);
+                if (lDate && lDate >= fromDate && lDate <= toDate) {
+                    schoolDaysSet.add(lDate);
+                }
+            });
+
+            const totalSchoolDays = schoolDaysSet.size;
+            if (schoolDaysEl) schoolDaysEl.textContent = totalSchoolDays;
+
+            // 2. Map student present days
+            const studentPresentDaysMap = {}; // resolvedId -> Set(dates)
+
+            attendanceLogs.forEach(log => {
+                const lDate = getNormalizedLogDate(log);
+                if (lDate && lDate >= fromDate && lDate <= toDate) {
+                    const resolvedId = resolveToMemberId(log.id);
+                    if (membersDB[resolvedId]) {
+                        if (!studentPresentDaysMap[resolvedId]) {
+                            studentPresentDaysMap[resolvedId] = new Set();
+                        }
+                        studentPresentDaysMap[resolvedId].add(lDate);
+                    }
+                }
+            });
+
+            const memberIds = Object.keys(membersDB);
+            const rangeSummaryList = [];
+
+            memberIds.forEach(id => {
+                const member = membersDB[id];
+                const presentDatesSet = studentPresentDaysMap[id] || new Set();
+                const presentCount = presentDatesSet.size;
+                const absentCount = Math.max(0, totalSchoolDays - presentCount);
+
+                rangeSummaryList.push({
+                    id: id,
+                    name: member.name,
+                    section: member.section || 'N/A',
+                    present: presentCount,
+                    absent: absentCount,
+                    isPerfect: (absentCount === 0) && (totalSchoolDays > 0)
+                });
+            });
+
+            rangeSummaryList.sort((a, b) => getLastNameKey(a.name).localeCompare(getLastNameKey(b.name)));
+
+            const noAbsentStudents = rangeSummaryList.filter(s => s.isPerfect);
+            if (countBadge) countBadge.textContent = `${noAbsentStudents.length} Student${noAbsentStudents.length !== 1 ? 's' : ''}`;
+
+            // Render Highlight Cards for Perfect Attendance (No Absent)
+            if (totalSchoolDays === 0) {
+                cardsContainer.innerHTML = '<p class="text-xs text-emerald-800 font-medium col-span-full">Walang nahanap na attendance logs sa napiling date range.</p>';
+            } else if (noAbsentStudents.length === 0) {
+                cardsContainer.innerHTML = '<p class="text-xs text-emerald-800 font-medium col-span-full">Walang estudyante na may 100% Perfect Attendance sa napiling mga petsa.</p>';
+            } else {
+                noAbsentStudents.forEach(st => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white border-2 border-emerald-500 rounded-lg p-3 shadow-sm flex flex-col justify-between hover:shadow-md transition";
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] uppercase tracking-wider font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">No Absent</span>
+                                <span class="text-xs text-emerald-600 font-bold">100%</span>
+                            </div>
+                            <h4 class="text-xs font-bold text-gray-800 leading-tight">${st.name}</h4>
+                            <p class="text-[11px] text-gray-500 mt-0.5">${st.section}</p>
+                        </div>
+                        <div class="mt-2 pt-2 border-t text-[11px] text-emerald-700 font-medium flex justify-between">
+                            <span>Present: ${st.present}/${totalSchoolDays} days</span>
+                        </div>
+                    `;
+                    cardsContainer.appendChild(card);
+                });
+            }
+
+            // Render Breakdown Table Rows
+            if (rangeSummaryList.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-xs text-gray-500">Walang mga estudyante sa database.</td></tr>';
+            } else {
+                rangeSummaryList.forEach(st => {
+                    const row = document.createElement('tr');
+                    
+                    let badgeHtml = '';
+                    if (totalSchoolDays === 0) {
+                        badgeHtml = `<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">No Logs</span>`;
+                    } else if (st.isPerfect) {
+                        badgeHtml = `<span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">No Absent</span>`;
+                    } else {
+                        badgeHtml = `<span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">${st.absent} Day${st.absent > 1 ? 's' : ''} Absent</span>`;
+                    }
+
+                    row.innerHTML = `
+                        <td class="px-4 py-2.5 text-xs font-medium text-gray-900">${st.name}</td>
+                        <td class="px-4 py-2.5 text-xs text-gray-500">${st.section}</td>
+                        <td class="px-4 py-2.5 text-xs font-bold text-center text-emerald-700 bg-emerald-50/50">${st.present}</td>
+                        <td class="px-4 py-2.5 text-xs font-bold text-center text-red-600 bg-red-50/50">${st.absent}</td>
+                        <td class="px-4 py-2.5 text-xs text-center">${badgeHtml}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+        }
+
+        function exportRangeReport() {
+            const fromDate = document.getElementById('rangeFromDate').value;
+            const toDate = document.getElementById('rangeToDate').value;
+            if (!fromDate || !toDate) {
+                alert("Pumili muna ng Date From at Date To bago mag-export.");
+                return;
+            }
+
+            const schoolDaysSet = new Set();
+            attendanceLogs.forEach(log => {
+                const lDate = getNormalizedLogDate(log);
+                if (lDate && lDate >= fromDate && lDate <= toDate) {
+                    schoolDaysSet.add(lDate);
+                }
+            });
+            const totalSchoolDays = schoolDaysSet.size;
+
+            const studentPresentDaysMap = {};
+            attendanceLogs.forEach(log => {
+                const lDate = getNormalizedLogDate(log);
+                if (lDate && lDate >= fromDate && lDate <= toDate) {
+                    const resolvedId = resolveToMemberId(log.id);
+                    if (membersDB[resolvedId]) {
+                        if (!studentPresentDaysMap[resolvedId]) {
+                            studentPresentDaysMap[resolvedId] = new Set();
+                        }
+                        studentPresentDaysMap[resolvedId].add(lDate);
+                    }
+                }
+            });
+
+            const reportData = [];
+            Object.keys(membersDB).forEach(id => {
+                const member = membersDB[id];
+                const presentDatesSet = studentPresentDaysMap[id] || new Set();
+                const presentCount = presentDatesSet.size;
+                const absentCount = Math.max(0, totalSchoolDays - presentCount);
+
+                reportData.push({
+                    MemberID: id,
+                    Name: member.name,
+                    Section: member.section || 'N/A',
+                    TotalActiveSchoolDays: totalSchoolDays,
+                    PresentDays: presentCount,
+                    AbsentDays: absentCount,
+                    Status: (absentCount === 0 && totalSchoolDays > 0) ? 'No Absent' : 'Has Absent'
+                });
+            });
+
+            reportData.sort((a, b) => getLastNameKey(a.Name).localeCompare(getLastNameKey(b.Name)));
+
+            if (reportData.length === 0) { alert("Walang datos na ma-i-export."); return; }
+
+            const worksheet = XLSX.utils.json_to_sheet(reportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, `Attendance_Range`);
+            XLSX.writeFile(workbook, `Attendance_Range_Report_${fromDate}_to_${toDate}.xlsx`);
+        }
+
+        function renderAdminDashboardData() {
+            if (!isAuthenticated) return;
+            updateTitleHeaderUI();
+            const dateInput = document.getElementById('adminDate').value;
+            if (!dateInput) return;
+
+            const adminPresentBody = document.getElementById('adminPresentBody');
+            const adminAbsentBody = document.getElementById('adminAbsentBody');
+            const membersTableBody = document.getElementById('membersTableBody');
+
+            adminPresentBody.innerHTML = '';
+            adminAbsentBody.innerHTML = '';
+            membersTableBody.innerHTML = '';
+
+            const memberIds = Object.keys(membersDB);
+            const presentMemberIds = new Set();
+            const presentLogsMap = {};
+
+            attendanceLogs.forEach(log => {
+                if (logMatchesDate(log, dateInput)) {
+                    const resolvedId = resolveToMemberId(log.id);
+                    if (membersDB[resolvedId]) {
+                        presentMemberIds.add(resolvedId);
+                        presentLogsMap[resolvedId] = log.time;
+                    }
+                }
+            });
+
+            const presentList = [];
+            const absentList = [];
+            const fullMemberList = [];
+
+            memberIds.forEach(id => {
+                const member = membersDB[id];
+                const item = {
+                    id: id,
+                    name: member.name,
+                    role: member.role || 'Student',
+                    section: member.section || 'N/A',
+                    timeIn: presentLogsMap[id] || 'N/A'
+                };
+
+                fullMemberList.push(item);
+
+                if (presentMemberIds.has(id)) {
+                    presentList.push(item);
+                } else {
+                    absentList.push(item);
+                }
+            });
+
+            const sortByLastName = (a, b) => getLastNameKey(a.name).localeCompare(getLastNameKey(b.name));
+            presentList.sort(sortByLastName);
+            absentList.sort(sortByLastName);
+            fullMemberList.sort(sortByLastName);
+
+            // Render Present Table
+            if (presentList.length === 0) {
+                adminPresentBody.innerHTML = `<tr><td colspan="3" class="px-3 py-3 text-center text-xs text-gray-500">No present students for this date.</td></tr>`;
+            } else {
+                presentList.forEach(st => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-3 py-2 text-xs font-medium text-gray-900">${st.name}</td>
+                        <td class="px-3 py-2 text-xs text-gray-500">${st.timeIn}</td>
+                        <td class="px-3 py-2 text-xs">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Present</span>
+                        </td>
+                    `;
+                    adminPresentBody.appendChild(row);
+                });
+            }
+
+            // Render Absent Table
+            if (absentList.length === 0) {
+                adminAbsentBody.innerHTML = `<tr><td colspan="3" class="px-3 py-3 text-center text-xs text-gray-500">No absent students for this date.</td></tr>`;
+            } else {
+                absentList.forEach(st => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-3 py-2 text-xs font-medium text-gray-900">${st.name}</td>
+                        <td class="px-3 py-2 text-xs text-gray-500">${st.section}</td>
+                        <td class="px-3 py-2 text-xs">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Absent</span>
+                        </td>
+                    `;
+                    adminAbsentBody.appendChild(row);
+                });
+            }
+
+            document.getElementById('totalPresent').textContent = presentList.length;
+            document.getElementById('totalAbsent').textContent = absentList.length;
+            document.getElementById('presentBadgeCount').textContent = presentList.length;
+            document.getElementById('absentBadgeCount').textContent = absentList.length;
+
+            // Render Full Members Table
+            if (fullMemberList.length === 0) {
+                membersTableBody.innerHTML = `<tr><td colspan="4" class="px-4 py-3 text-center text-sm text-gray-500">No member data available.</td></tr>`;
+            } else {
+                fullMemberList.forEach(m => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-sm text-gray-500 font-bold">${m.id}</td>
+                        <td class="px-4 py-2 text-sm font-medium text-gray-900">${m.name}</td>
+                        <td class="px-4 py-2 text-sm text-gray-500">${m.role}</td>
+                        <td class="px-4 py-2 text-sm text-gray-500">${m.section}</td>
+                    `;
+                    membersTableBody.appendChild(row);
+                });
+            }
+        }
+
+        function exportAdminDashboardReport() {
+            const dateInput = document.getElementById('adminDate').value;
+            if (!dateInput) { alert("Please select a date first."); return; }
+
+            const reportData = [];
+            const memberIds = Object.keys(membersDB);
+            const presentMemberIds = new Set();
+            const presentLogsMap = {};
+
+            attendanceLogs.forEach(log => {
+                if (logMatchesDate(log, dateInput)) {
+                    const resolvedId = resolveToMemberId(log.id);
+                    if (membersDB[resolvedId]) {
+                        presentMemberIds.add(resolvedId);
+                        presentLogsMap[resolvedId] = log.time;
+                    }
+                }
+            });
+
+            memberIds.forEach(id => {
+                const member = membersDB[id];
+                const isPresent = presentMemberIds.has(id);
+                reportData.push({
+                    Date: dateInput,
+                    MemberID: id,
+                    Name: member.name,
+                    Role: member.role || 'Student',
+                    Section: member.section || 'N/A',
+                    Status: isPresent ? 'Present' : 'Absent',
+                    TimeIn: isPresent ? presentLogsMap[id] : 'N/A'
+                });
+            });
+
+            reportData.sort((a, b) => getLastNameKey(a.Name).localeCompare(getLastNameKey(b.Name)));
+
+            if (reportData.length === 0) { alert("No members data to export."); return; }
+
+            const worksheet = XLSX.utils.json_to_sheet(reportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, `Attendance_${dateInput}`);
+            XLSX.writeFile(workbook, `Attendance_Report_${dateInput}.xlsx`);
+        }
+
+        function validateAndImportDashboardData(parsedData, sourceName = "File/Paste", showSuccessAlert = true) {
+            if (!parsedData || typeof parsedData !== 'object') {
+                if (showSuccessAlert) alert(`❌ Validation Failed (${sourceName}): The input data could not be parsed into a structured dataset.`);
+                return false;
+            }
+
+            const hasMembers = parsedData.members && typeof parsedData.members === 'object';
+            const hasStudents = Array.isArray(parsedData.students);
+            const hasLogs = Array.isArray(parsedData.logs);
+            const isLogsArray = Array.isArray(parsedData);
+
+            if (!hasMembers && !hasStudents && !hasLogs && !isLogsArray) {
+                if (showSuccessAlert) alert(`❌ Validation Failed (${sourceName}): The file was processed, but it does not contain the necessary attendance logs or student/member records required by this dashboard.`);
+                return false;
+            }
+
+            importParsedJsonObject(parsedData, showSuccessAlert);
+            return true;
+        }
+
+        // --- RECURSIVE FOLDER AND FILE SCANNING LOGIC ---
+        async function scanFilesFromEntry(entry) {
+            let fileList = [];
+            if (!entry) return fileList;
+
+            if (entry.isFile) {
+                return new Promise((resolve) => {
+                    entry.file((file) => {
+                        fileList.push(file);
+                        resolve(fileList);
+                    }, () => resolve([]));
+                });
+            } else if (entry.isDirectory) {
+                const dirReader = entry.createReader();
+                const readBatch = () => {
+                    return new Promise((resolve) => {
+                        dirReader.readEntries(async (entries) => {
+                            if (!entries || entries.length === 0) {
+                                resolve([]);
+                            } else {
+                                let subFiles = [];
+                                for (const childEntry of entries) {
+                                    const childFiles = await scanFilesFromEntry(childEntry);
+                                    subFiles = subFiles.concat(childFiles);
+                                }
+                                const nextBatchFiles = await readBatch();
+                                resolve(subFiles.concat(nextBatchFiles));
+                            }
+                        }, () => resolve([]));
+                    });
+                };
+                fileList = await readBatch();
+            }
+            return fileList;
+        }
+
+        async function processMultipleFiles(files) {
+            if (!files || files.length === 0) return;
+
+            const jsonFiles = files.filter(f => {
+                const name = f.name.toLowerCase();
+                return name.endsWith('.json') || f.type === 'application/json' || f.type === '';
+            });
+
+            if (jsonFiles.length === 0) {
+                alert("❌ Walang nahanap na JSON file sa napiling folder o mga file.");
+                return;
+            }
+
+            let successCount = 0;
+            for (let file of jsonFiles) {
+                const success = await readAndImportFile(file);
+                if (success) successCount++;
+            }
+
+            if (successCount > 0) {
+                renderAdminDashboardData();
+                renderRangeAttendanceData();
+                const scanMsg = document.getElementById('scan-status-msg');
+                if (scanMsg) scanMsg.textContent = `✔ Matagumpay na na-import ang ${successCount} JSON file(s) mula sa folder/mga file!`;
+                alert(`✔ Matagumpay na na-import ang ${successCount} JSON file(s)!`);
+            } else {
+                alert("❌ Walang valid na JSON attendance dataset na na-import mula sa napiling folder/mga file.");
+            }
+        }
+
+        function readAndImportFile(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const content = e.target.result;
+                        const parsed = JSON.parse(content);
+                        const isValid = validateAndImportDashboardData(parsed, file.name, false);
+                        resolve(isValid);
+                    } catch (err) {
+                        resolve(false);
+                    }
+                };
+                reader.onerror = function() {
+                    resolve(false);
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        function handleGlobalPaste(e) {
+            if (!isAuthenticated) return;
+            if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                if (document.activeElement.id === 'admin-user' || document.activeElement.id === 'admin-pass' || document.activeElement.id.startsWith('settings-')) return;
+            }
+
+            const clipboard = e.clipboardData;
+            if (!clipboard) return;
+
+            if (clipboard.files && clipboard.files.length > 0) {
+                e.preventDefault();
+                processMultipleFiles(Array.from(clipboard.files));
+                return;
+            }
+
+            const textContent = clipboard.getData('text/plain') || clipboard.getData('text');
+            if (textContent && textContent.trim().length > 0) {
+                e.preventDefault();
+                try {
+                    const parsed = JSON.parse(textContent.trim());
+                    validateAndImportDashboardData(parsed, "Pasted Text", true);
+                } catch (err) {
+                    alert("❌ Validation Failed: The pasted text is not a valid JSON structure.");
+                }
+            }
+        }
+
+        function handleDragOver(e) {
+            if (!isAuthenticated) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const dropZone = document.getElementById('drop-zone');
+            if (dropZone) dropZone.classList.add('border-purple-600', 'bg-purple-200');
+        }
+
+        function handleDragLeave(e) {
+            if (!isAuthenticated) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const dropZone = document.getElementById('drop-zone');
+            if (dropZone) dropZone.classList.remove('border-purple-600', 'bg-purple-200');
+        }
+
+        async function handleDrop(e) {
+            if (!isAuthenticated) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const dropZone = document.getElementById('drop-zone');
+            if (dropZone) dropZone.classList.remove('border-purple-600', 'bg-purple-200');
+
+            const dt = e.dataTransfer;
+            let collectedFiles = [];
+
+            if (dt.items && dt.items.length > 0) {
+                for (let i = 0; i < dt.items.length; i++) {
+                    const item = dt.items[i];
+                    if (item.webkitGetAsEntry) {
+                        const entry = item.webkitGetAsEntry();
+                        if (entry) {
+                            const filesFromEntry = await scanFilesFromEntry(entry);
+                            collectedFiles = collectedFiles.concat(filesFromEntry);
+                        }
+                    } else if (item.kind === 'file') {
+                        const file = item.getAsFile();
+                        if (file) collectedFiles.push(file);
+                    }
+                }
+            } else if (dt.files && dt.files.length > 0) {
+                collectedFiles = Array.from(dt.files);
+            }
+
+            if (collectedFiles.length > 0) {
+                await processMultipleFiles(collectedFiles);
+                return;
+            }
+
+            const rawText = dt.getData('text/plain') || dt.getData('text/uri-list') || dt.getData('text/html');
+            if (rawText) {
+                const trimmed = rawText.trim();
+                
+                if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+                    try {
+                        const parsed = JSON.parse(trimmed);
+                        validateAndImportDashboardData(parsed, "Dropped Text", true);
+                        return;
+                    } catch (err) {
+                        alert("❌ Validation Failed: Dropped text was not valid JSON data.");
+                        return;
+                    }
+                }
+
+                if (trimmed.startsWith('http') || trimmed.startsWith('blob:')) {
+                    try {
+                        const response = await fetch(trimmed);
+                        const parsed = await response.json();
+                        validateAndImportDashboardData(parsed, "Dropped Link", true);
+                        return;
+                    } catch (err) {
+                        alert("❌ Validation Failed: Could not parse dataset from link: " + err.message);
+                        return;
+                    }
+                }
+            }
+
+            alert("❌ Invalid Input: Could not read file or text data from the dropped item.");
+        }
+
+        function importAdminJsonData(event) {
+            const files = event.target.files;
+            if (files && files.length > 0) {
+                processMultipleFiles(Array.from(files));
+                event.target.value = '';
+            }
+        }
+
+        function importParsedJsonObject(parsed, showSuccessAlert = true) {
+            let importedLogs = [];
+            let importedMembers = {};
+
+            if (parsed.members) {
+                importedMembers = parsed.members;
+            }
+
+            if (Array.isArray(parsed.students)) {
+                parsed.students.forEach(st => {
+                    if (st.id) {
+                        importedMembers[st.id] = {
+                            name: st.name || '',
+                            role: st.role || 'Student',
+                            section: st.section || '',
+                            pin: st.pin || ''
+                        };
+                    }
+                    if (st.status === 'Present' && st.timeIn && st.timeIn !== 'N/A') {
+                        const targetDate = parsed.date || new Date().toISOString().slice(0, 10);
+                        importedLogs.push({
+                            id: st.id,
+                            name: st.name,
+                            role: st.role || 'Student',
+                            section: st.section || 'N/A',
+                            date: targetDate,
+                            isoDate: targetDate,
+                            time: st.timeIn
+                        });
+                    }
+                });
+            }
+
+            if (parsed.logs && Array.isArray(parsed.logs)) {
+                importedLogs = importedLogs.concat(parsed.logs);
+            } else if (Array.isArray(parsed) && !parsed.members) {
+                importedLogs = importedLogs.concat(parsed);
+            }
+
+            Object.keys(importedMembers).forEach(id => {
+                membersDB[id] = {
+                    ...(membersDB[id] || {}),
+                    ...importedMembers[id]
+                };
+            });
+
+            const logKey = log => `${log.id}_${log.isoDate || log.date}_${log.time}`;
+            const existingKeys = new Set(attendanceLogs.map(logKey));
+
+            importedLogs.forEach(log => {
+                if (log && log.id && !existingKeys.has(logKey(log))) {
+                    attendanceLogs.push(log);
+                    existingKeys.add(logKey(log));
+                }
+            });
+
+            saveAllAttendanceData();
+
+            let targetDate = parsed.date;
+            if (!targetDate && importedLogs.length > 0) {
+                targetDate = importedLogs[0].isoDate || importedLogs[0].date;
+            }
+            if (targetDate) {
+                document.getElementById('adminDate').value = targetDate;
+            }
+
+            renderAdminDashboardData();
+            renderRangeAttendanceData();
+            
+            const scanMsg = document.getElementById('scan-status-msg');
+            if (scanMsg) scanMsg.textContent = "✔ Dataset validated and imported into database!";
+            
+            if (showSuccessAlert) {
+                alert("✔ Valid dashboard file loaded successfully!");
+            }
+        }
+
+        function initAdminScannerSelect() {
+            Html5Qrcode.getCameras().then(devices => {
+                const camSelect = document.getElementById('admin-camera-select');
+                if (!camSelect) return;
+                camSelect.innerHTML = '';
+                if (devices && devices.length) {
+                    devices.forEach((dev, idx) => {
+                        const opt = document.createElement('option');
+                        opt.value = dev.id;
+                        opt.text = dev.label || `Camera ${idx + 1}`;
+                        camSelect.appendChild(opt);
+                    });
+                }
+            }).catch(err => console.error("Camera error:", err));
+        }
+
+        function toggleAdminScanner() {
+            const readerDiv = document.getElementById('admin-reader');
+            const btn = document.getElementById('toggle-scanner-btn');
+            const camSelect = document.getElementById('admin-camera-select');
+
+            if (!isAdminScannerRunning) {
+                readerDiv.style.display = 'block';
+                btn.textContent = "Stop Scanner";
+                btn.classList.replace('bg-indigo-600', 'bg-red-600');
+                btn.classList.replace('hover:bg-indigo-700', 'hover:bg-red-700');
+
+                const cameraId = camSelect.value;
+                adminHtml5QrCode = new Html5Qrcode("admin-reader");
+                
+                adminHtml5QrCode.start(
+                    cameraId ? { deviceId: { exact: cameraId } } : { facingMode: "environment" },
+                    { 
+                        fps: 15, 
+                        qrbox: function(viewfinderWidth, viewfinderHeight) {
+                            const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                            return {
+                                width: Math.floor(minEdge * 0.85),
+                                height: Math.floor(minEdge * 0.85)
+                            };
+                        } 
+                    },
+                    onAdminScanSuccess,
+                    (err) => {}
+                ).catch(err => {
+                    alert("Unable to open camera: " + err);
+                    stopAdminScannerUI();
+                });
+                isAdminScannerRunning = true;
+            } else {
+                stopAdminScannerUI();
+            }
+        }
+
+        function stopAdminScannerUI() {
+            if (adminHtml5QrCode && adminHtml5QrCode.isScanning) {
+                adminHtml5QrCode.stop().then(() => {
+                    document.getElementById('admin-reader').style.display = 'none';
+                }).catch(err => console.log(err));
+            } else {
+                const readerDiv = document.getElementById('admin-reader');
+                if (readerDiv) readerDiv.style.display = 'none';
+            }
+            const btn = document.getElementById('toggle-scanner-btn');
+            if (btn) {
+                btn.textContent = "Start Scanner";
+                btn.classList.replace('bg-red-600', 'bg-indigo-600');
+                btn.classList.replace('hover:bg-red-700', 'hover:bg-indigo-700');
+            }
+            isAdminScannerRunning = false;
+        }
+
+        function onAdminScanSuccess(decodedText) {
+            try {
+                const parsedData = JSON.parse(decodedText);
+                if (validateAndImportDashboardData(parsedData, "Scanned QR", true)) {
+                    document.getElementById('scan-status-msg').textContent = "✔ Student Data and Database successfully loaded from QR!";
+                    stopAdminScannerUI();
+                }
+            } catch(e) {
+                alert("Error reading QR data: " + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
